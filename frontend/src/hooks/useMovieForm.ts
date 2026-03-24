@@ -51,7 +51,7 @@ export function useMovieForm(
         }
 
         const parsedRating = formData.rating === '' ? undefined : Number(formData.rating);
-        if (parsedRating !== undefined && (!Number.isFinite(parsedRating) || parsedRating < 0 || parsedRating > 5)) {
+        if (parsedRating !== undefined && (!Number.isFinite(parsedRating) || parsedRating < 0.5 || parsedRating > 5)) {
             return;
         }
 

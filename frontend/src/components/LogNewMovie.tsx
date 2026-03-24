@@ -57,15 +57,15 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
 
                             <div className="space-y-2">
                                 <label className="text-sm flex items-center gap-2 text-[#E0BAAA]">
-                                    <Star className="w-4 h-4" /> Rating (0-5)
+                                    <Star className="w-4 h-4" /> Rating (0.5-5, optional)
                                 </label>
                                 <input
                                     type="number"
-                                    min="0"
+                                    min="0.5"
                                     max="5"
                                     step="0.5"
                                     value={formData.rating}
-                                    onChange={(e) => setFormData({ ...formData, rating: parseFloat(e.target.value) })}
+                                    onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
                                     className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none"
                                 />
                             </div>

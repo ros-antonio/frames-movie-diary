@@ -69,6 +69,11 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit }: MovieDetailProp
                                         Rating
                                     </p>
                                     <StarRating rating={movie.rating} />
+                                    {(movie.rating === undefined || movie.rating < 0.5) && (
+                                        <p className="text-xs mt-1 opacity-70" style={{ color: '#B9A5D2' }}>
+                                            Not rated
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>
