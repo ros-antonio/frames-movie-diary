@@ -12,6 +12,9 @@ export default function App() {
   const [movieLogs, setMovieLogs] = useState<MovieLog[]>([]);
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
 
+  const selectedMovie = selectedMovieId ? movieLogs.find((movie) => movie.id === selectedMovieId) : null;
+
+
   const handleAddMovie = (newMovie: { movieName: string; watchDate: string; rating?: number; review?: string }) => {
     const movie: MovieLog = {
       ...newMovie,
@@ -49,14 +52,7 @@ export default function App() {
     return <LogNewMovie onSave={handleAddMovie} onCancel={() => setIsAddingMovie(false)} />;
   }
 
-  if (selectedMovieId) {
-    const selectedMovie = movieLogs.find(m => m.id === selectedMovieId);
-
-    if (!selectedMovie) {
-      setSelectedMovieId(null);
-      return null;
-    }
-
+  if (selectedMovieId && selectedMovie) {
     if (isEditingMovie) {
       return (
           <LogNewMovie
