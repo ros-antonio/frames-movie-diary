@@ -51,7 +51,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                                     required
                                     value={formData.watchDate}
                                     onChange={(e) => setFormData({ ...formData, watchDate: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none [color-scheme:dark]"
+                                    className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none [scheme:dark]"
                                 />
                             </div>
 
