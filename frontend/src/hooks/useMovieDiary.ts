@@ -25,7 +25,12 @@ export function useMovieDiary(movieLogs: MovieLog[], itemsPerPage: number = 6) {
     }, [movieLogs, sortConfig]);
 
     const totalPages = Math.max(1, Math.ceil(sortedMovies.length / itemsPerPage));
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    const clampedCurrentPage = Math.min(Math.max(currentPage, 1), totalPages);
+    const setCurrentPageClamped = (page: number) => {
+        setCurrentPage(Math.min(Math.max(page, 1), totalPages));
+    };
+
+    const startIndex = (clampedCurrentPage - 1) * itemsPerPage;
     const currentMovies = sortedMovies.slice(startIndex, startIndex + itemsPerPage);
 
     const requestSort = (field: SortField) => {
@@ -37,8 +42,8 @@ export function useMovieDiary(movieLogs: MovieLog[], itemsPerPage: number = 6) {
     };
 
     return {
-        currentPage,
-        setCurrentPage,
+        currentPage: clampedCurrentPage,
+        setCurrentPage: setCurrentPageClamped,
         viewMode,
         setViewMode,
         totalPages,
