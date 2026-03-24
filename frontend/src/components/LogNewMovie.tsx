@@ -43,7 +43,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="block text-sm flex items-center gap-2 text-[#E0BAAA]">
+                                <label className="text-sm flex items-center gap-2 text-[#E0BAAA]">
                                     <Calendar className="w-4 h-4" /> Watch Date *
                                 </label>
                                 <input
@@ -56,7 +56,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-sm flex items-center gap-2 text-[#E0BAAA]">
+                                <label className="text-sm flex items-center gap-2 text-[#E0BAAA]">
                                     <Star className="w-4 h-4" /> Rating (0-5)
                                 </label>
                                 <input
@@ -72,7 +72,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                         </div>
 
                         <div className="space-y-2">
-                            <label className="block text-sm flex items-center gap-2 text-[#E0BAAA]">
+                            <label className="text-sm flex items-center gap-2 text-[#E0BAAA]">
                                 <MessageSquare className="w-4 h-4" /> Review
                             </label>
                             <textarea
