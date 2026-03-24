@@ -1,14 +1,45 @@
 import { useState } from 'react';
 import type { MovieLog } from '../types';
 
+interface MovieFormData {
+    title: string;
+    watchDate: string;
+    rating: string;
+    review: string;
+}
+
+function formatDateInputValue(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function toDateInputValue(rawDate?: string): string {
+    if (!rawDate) {
+        return formatDateInputValue(new Date());
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+        return rawDate;
+    }
+
+    const parsedDate = new Date(rawDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+        return formatDateInputValue(new Date());
+    }
+
+    return formatDateInputValue(parsedDate);
+}
+
 export function useMovieForm(
     onSave: (movie: { movieName: string; watchDate: string; rating?: number; review?: string }) => void,
     initialData?: MovieLog
 ) {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<MovieFormData>({
         title: initialData?.movieName || '',
-        watchDate: initialData?.watchDate ? new Date(initialData.watchDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        rating: initialData?.rating || 0,
+        watchDate: toDateInputValue(initialData?.watchDate),
+        rating: initialData?.rating !== undefined ? String(initialData.rating) : '',
         review: initialData?.review || '',
     });
 
@@ -19,10 +50,15 @@ export function useMovieForm(
             return;
         }
 
+        const parsedRating = formData.rating === '' ? undefined : Number(formData.rating);
+        if (parsedRating !== undefined && (!Number.isFinite(parsedRating) || parsedRating < 0 || parsedRating > 5)) {
+            return;
+        }
+
         onSave({
             movieName: formData.title,
             watchDate: formData.watchDate,
-            rating: Number(formData.rating),
+            rating: parsedRating,
             review: formData.review,
         });
     };
