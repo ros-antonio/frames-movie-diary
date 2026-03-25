@@ -49,12 +49,14 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                 <div className="flex justify-end mb-4">
                     <div className="flex gap-2 rounded-lg p-1 bg-[#223662]">
                         <button
+                            aria-label="Table view"
                             onClick={() => setViewMode('table')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
                         >
                             <TableIcon className="w-4 h-4" />
                         </button>
                         <button
+                            aria-label="Card view"
                             onClick={() => setViewMode('card')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'card' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
                         >

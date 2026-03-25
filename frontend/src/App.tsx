@@ -25,12 +25,10 @@ export default function App() {
     setIsAddingMovie(false);
   };
 
-  const handleUpdateMovie = (updatedMovieData: { movieName: string; watchDate: string; rating?: number; review?: string }) => {
-    if (!selectedMovieId) return;
-
+  const handleUpdateMovie = (movieId: string, updatedMovieData: { movieName: string; watchDate: string; rating?: number; review?: string }) => {
     setMovieLogs((prev) =>
         prev.map((log) => {
-          if (log.id === selectedMovieId) {
+          if (log.id === movieId) {
             return { ...log, ...updatedMovieData };
           }
           return log;
@@ -57,7 +55,7 @@ export default function App() {
       return (
           <LogNewMovie
               initialData={selectedMovie}
-              onSave={handleUpdateMovie}
+              onSave={(updatedMovieData) => handleUpdateMovie(selectedMovie.id, updatedMovieData)}
               onCancel={() => setIsEditingMovie(false)}
           />
       );
