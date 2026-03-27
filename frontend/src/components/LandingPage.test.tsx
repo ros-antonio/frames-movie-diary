@@ -4,15 +4,26 @@ import { describe, expect, it, vi } from 'vitest';
 import { LandingPage } from './LandingPage';
 
 describe('LandingPage', () => {
-  it('calls onEnter when Enter Diary is clicked', async () => {
+  it('calls onLogin when Login is clicked', async () => {
     const user = userEvent.setup();
-    const onEnter = vi.fn();
+    const onLogin = vi.fn();
 
-    render(<LandingPage onEnter={onEnter} />);
+    render(<LandingPage onLogin={onLogin} onRegister={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Enter Diary' }));
+    await user.click(screen.getByRole('button', { name: 'Login' }));
 
-    expect(onEnter).toHaveBeenCalledOnce();
+    expect(onLogin).toHaveBeenCalledOnce();
+  });
+
+  it('calls onRegister when Register is clicked', async () => {
+    const user = userEvent.setup();
+    const onRegister = vi.fn();
+
+    render(<LandingPage onLogin={vi.fn()} onRegister={onRegister} />);
+
+    await user.click(screen.getByRole('button', { name: 'Register' }));
+
+    expect(onRegister).toHaveBeenCalledOnce();
   });
 });
 

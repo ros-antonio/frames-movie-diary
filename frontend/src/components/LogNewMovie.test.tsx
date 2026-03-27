@@ -27,6 +27,35 @@ describe('LogNewMovie', () => {
       watchDate: '2026-03-24',
       rating: undefined,
       review: 'Mind-bending thriller',
+      movieLink: undefined,
+    });
+  });
+
+  it('submits movie link when provided', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    const { container } = render(<LogNewMovie onSave={onSave} onCancel={vi.fn()} />);
+
+    const textInputs = container.querySelectorAll('input[type="text"]');
+    const titleInput = textInputs[0] as HTMLInputElement;
+    const linkInput = textInputs[1] as HTMLInputElement;
+    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+
+    await user.clear(titleInput);
+    await user.type(titleInput, 'Primer');
+    await user.clear(dateInput);
+    await user.type(dateInput, '2026-03-24');
+    await user.type(linkInput, 'magnet:?xt=urn:btih:001122334455');
+
+    await user.click(screen.getByRole('button', { name: /Save Movie/i }));
+
+    expect(onSave).toHaveBeenCalledWith({
+      movieName: 'Primer',
+      watchDate: '2026-03-24',
+      rating: undefined,
+      review: '',
+      movieLink: 'magnet:?xt=urn:btih:001122334455',
     });
   });
 

@@ -54,5 +54,18 @@ describe('MovieDetail', () => {
 
     expect(alertSpy).toHaveBeenCalledOnce();
   });
+
+  it('renders movie link when provided', () => {
+    render(
+      <MovieDetail
+        movie={{ ...baseMovie, movieLink: 'magnet:?xt=urn:btih:aabbcc' }}
+        onBack={vi.fn()}
+        onDelete={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'magnet:?xt=urn:btih:aabbcc' })).toBeInTheDocument();
+  });
 });
 

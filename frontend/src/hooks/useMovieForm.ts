@@ -6,6 +6,7 @@ interface MovieFormData {
     watchDate: string;
     rating: string;
     review: string;
+    movieLink: string;
 }
 
 function formatDateInputValue(date: Date): string {
@@ -33,7 +34,7 @@ function toDateInputValue(rawDate?: string): string {
 }
 
 export function useMovieForm(
-    onSave: (movie: { movieName: string; watchDate: string; rating?: number; review?: string }) => void,
+    onSave: (movie: { movieName: string; watchDate: string; rating?: number; review?: string; movieLink?: string }) => void,
     initialData?: MovieLog
 ) {
     const [formData, setFormData] = useState<MovieFormData>({
@@ -41,6 +42,7 @@ export function useMovieForm(
         watchDate: toDateInputValue(initialData?.watchDate),
         rating: initialData?.rating !== undefined ? String(initialData.rating) : '',
         review: initialData?.review || '',
+        movieLink: initialData?.movieLink || '',
     });
 
     const handleSubmit = (e: React.SyntheticEvent) => {
@@ -60,6 +62,7 @@ export function useMovieForm(
             watchDate: formData.watchDate,
             rating: parsedRating,
             review: formData.review,
+            movieLink: formData.movieLink.trim() || undefined,
         });
     };
 

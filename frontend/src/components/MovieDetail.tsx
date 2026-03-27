@@ -1,4 +1,4 @@
-import { ArrowLeft, Edit, Trash2, Star, Film } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Star, Film, Link as LinkIcon } from 'lucide-react';
 import type { MovieLog } from '../types';
 import { useMovieDetail } from '../hooks/useMovieDetail';
 
@@ -105,6 +105,23 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit }: MovieDetailProp
                             <p className="leading-relaxed text-lg opacity-90" style={{ color: '#B9A5D2' }}>
                                 {movie.review}
                             </p>
+                        </div>
+                    )}
+
+                    {movie.movieLink && (
+                        <div className="space-y-2 pt-4 border-t border-[#B9A5D2]/20">
+                            <h3 className="text-xl flex items-center gap-2" style={{ color: '#E0BAAA' }}>
+                                <LinkIcon className="w-5 h-5" /> Movie Link
+                            </h3>
+                            <a
+                                href={movie.movieLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline break-all opacity-90 hover:opacity-100"
+                                style={{ color: '#B9A5D2' }}
+                            >
+                                {movie.movieLink}
+                            </a>
                         </div>
                     )}
 

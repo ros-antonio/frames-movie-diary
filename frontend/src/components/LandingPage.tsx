@@ -1,10 +1,11 @@
 import { Film } from 'lucide-react';
 
 interface LandingPageProps {
-    onEnter: () => void;
+    onLogin: () => void;
+    onRegister: () => void;
 }
 
-export function LandingPage({ onEnter }: LandingPageProps) {
+export function LandingPage({ onLogin, onRegister }: LandingPageProps) {
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-[#261834]">
             <div className="max-w-2xl w-full text-center space-y-8">
@@ -28,14 +29,20 @@ export function LandingPage({ onEnter }: LandingPageProps) {
 
                 <div className="flex gap-4 justify-center pt-4">
                     <button
-                        onClick={onEnter}
+                        onClick={onLogin}
                         className="px-8 py-4 text-lg font-semibold hover:opacity-90 transition-opacity rounded-md"
                         style={{
                             backgroundColor: '#E0BAAA',
                             color: '#261834',
                         }}
                     >
-                        Enter Diary
+                        Login
+                    </button>
+                    <button
+                        onClick={onRegister}
+                        className="px-8 py-4 text-lg font-semibold hover:opacity-90 transition-opacity rounded-md border border-[#E0BAAA] text-[#E0BAAA]"
+                    >
+                        Register
                     </button>
                 </div>
             </div>

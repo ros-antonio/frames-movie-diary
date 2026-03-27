@@ -15,6 +15,7 @@ describe('useMovieForm', () => {
         watchDate: '2026-03-25',
         rating: '',
         review: 'Great visuals',
+        movieLink: 'magnet:?xt=urn:btih:abc123',
       });
     });
 
@@ -29,6 +30,7 @@ describe('useMovieForm', () => {
       watchDate: '2026-03-25',
       rating: undefined,
       review: 'Great visuals',
+      movieLink: 'magnet:?xt=urn:btih:abc123',
     });
   });
 
@@ -60,6 +62,7 @@ describe('useMovieForm', () => {
         watchDate: '2026-01-01',
         rating: 4.5,
         review: 'Excellent',
+        movieLink: 'https://example.com/arrival',
         frames: [],
       }),
     );
@@ -69,6 +72,7 @@ describe('useMovieForm', () => {
       watchDate: '2026-01-01',
       rating: '4.5',
       review: 'Excellent',
+      movieLink: 'https://example.com/arrival',
     });
   });
 

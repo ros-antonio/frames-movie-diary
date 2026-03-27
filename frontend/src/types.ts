@@ -11,5 +11,6 @@ export interface MovieLog {
     watchDate: string;
     rating?: number;
     review?: string;
+    movieLink?: string;
     frames: SavedFrame[];
 }

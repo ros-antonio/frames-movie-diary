@@ -1,9 +1,9 @@
-import { ArrowLeft, Film, Calendar, Star, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Film, Calendar, Star, MessageSquare, Link as LinkIcon } from 'lucide-react';
 import type { MovieLog } from '../types';
 import { useMovieForm } from '../hooks/useMovieForm';
 
 interface LogNewMovieProps {
-    onSave: (movie: { movieName: string; watchDate: string; rating?: number; review?: string }) => void;
+    onSave: (movie: { movieName: string; watchDate: string; rating?: number; review?: string; movieLink?: string }) => void;
     onCancel: () => void;
     initialData?: MovieLog;
 }
@@ -80,6 +80,19 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                                 value={formData.review}
                                 onChange={(e) => setFormData({ ...formData, review: e.target.value })}
                                 className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none focus:border-[#E0BAAA]/50 resize-none"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm flex items-center gap-2 text-[#E0BAAA]">
+                                <LinkIcon className="w-4 h-4" /> Movie Link (URL or magnet)
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.movieLink}
+                                onChange={(e) => setFormData({ ...formData, movieLink: e.target.value })}
+                                placeholder="https://... or magnet:?xt=..."
+                                className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none focus:border-[#E0BAAA]/50"
                             />
                         </div>
                     </div>
