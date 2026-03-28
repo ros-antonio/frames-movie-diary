@@ -25,9 +25,9 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: /Save Movie/i }));
   }
 
-  function renderApp() {
+  function renderApp(initialEntries: string[] = ['/']) {
     return render(
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={initialEntries}>
         <App />
       </MemoryRouter>,
     );
@@ -100,5 +100,11 @@ describe('App', () => {
     expect(screen.queryByText('Updated Title')).not.toBeInTheDocument();
     expect(screen.getByText('Second Title')).toBeInTheDocument();
   });
-});
 
+  it('redirects to diary when editing a movie that does not exist', () => {
+    renderApp(['/diary/non-existent-id/edit']);
+
+    expect(screen.getByRole('heading', { name: 'Movie Diary' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Edit Movie' })).not.toBeInTheDocument();
+  });
+});

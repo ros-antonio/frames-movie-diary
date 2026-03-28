@@ -7,6 +7,7 @@ import { LogNewMovie } from './components/LogNewMovie';
 import { MovieDetail } from './components/MovieDetail';
 import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
+import { Statistics } from './components/Statistics';
 
 type MovieInput = { movieName: string; watchDate: string; rating?: number; review?: string; movieLink?: string };
 
@@ -115,6 +116,7 @@ export default function App() {
       />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/statistics" element={<Statistics movieLogs={movieLogs} />} />
       <Route
         path="/diary"
         element={

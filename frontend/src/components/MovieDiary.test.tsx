@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { MovieDiary } from './MovieDiary';
 import type { MovieLog } from '../types';
@@ -15,11 +16,13 @@ describe('MovieDiary', () => {
     const onSelectMovie = vi.fn();
 
     render(
-      <MovieDiary
-        movieLogs={[movie('1', 'Arrival', '2026-01-01')]}
-        onAddClick={onAddClick}
-        onSelectMovie={onSelectMovie}
-      />,
+      <MemoryRouter>
+        <MovieDiary
+          movieLogs={[movie('1', 'Arrival', '2026-01-01')]}
+          onAddClick={onAddClick}
+          onSelectMovie={onSelectMovie}
+        />
+      </MemoryRouter>,
     );
 
     await user.click(screen.getByRole('button', { name: /Log New Movie/i }));
@@ -33,14 +36,16 @@ describe('MovieDiary', () => {
     const user = userEvent.setup();
 
     render(
-      <MovieDiary
-        movieLogs={[
-          movie('1', 'Zodiac', '2026-01-01'),
-          movie('2', 'Arrival', '2026-01-02'),
-        ]}
-        onAddClick={vi.fn()}
-        onSelectMovie={vi.fn()}
-      />,
+      <MemoryRouter>
+        <MovieDiary
+          movieLogs={[
+            movie('1', 'Zodiac', '2026-01-01'),
+            movie('2', 'Arrival', '2026-01-02'),
+          ]}
+          onAddClick={vi.fn()}
+          onSelectMovie={vi.fn()}
+        />
+      </MemoryRouter>,
     );
 
     await user.click(screen.getByRole('button', { name: /Movie Name/i }));
@@ -55,14 +60,16 @@ describe('MovieDiary', () => {
     const user = userEvent.setup();
 
     render(
-      <MovieDiary
-        movieLogs={[
-          movie('1', 'Movie A', '2026-01-03'),
-          movie('2', 'Movie B', '2026-01-01'),
-        ]}
-        onAddClick={vi.fn()}
-        onSelectMovie={vi.fn()}
-      />,
+      <MemoryRouter>
+        <MovieDiary
+          movieLogs={[
+            movie('1', 'Movie A', '2026-01-03'),
+            movie('2', 'Movie B', '2026-01-01'),
+          ]}
+          onAddClick={vi.fn()}
+          onSelectMovie={vi.fn()}
+        />
+      </MemoryRouter>,
     );
 
     await user.click(screen.getByRole('button', { name: /Watch Date/i }));
@@ -77,14 +84,16 @@ describe('MovieDiary', () => {
     const onSelectMovie = vi.fn();
 
     render(
-      <MovieDiary
-        movieLogs={[
-          movie('1', 'Arrival', '2026-01-01'),
-          movie('2', 'Zodiac', '2026-01-02'),
-        ]}
-        onAddClick={vi.fn()}
-        onSelectMovie={onSelectMovie}
-      />,
+      <MemoryRouter>
+        <MovieDiary
+          movieLogs={[
+            movie('1', 'Arrival', '2026-01-01'),
+            movie('2', 'Zodiac', '2026-01-02'),
+          ]}
+          onAddClick={vi.fn()}
+          onSelectMovie={onSelectMovie}
+        />
+      </MemoryRouter>,
     );
 
     await user.click(screen.getByRole('button', { name: 'Card view' }));
@@ -103,7 +112,11 @@ describe('MovieDiary', () => {
       movie(String(idx + 1), `Movie ${idx + 1}`, `2026-01-${String(idx + 1).padStart(2, '0')}`),
     );
 
-    render(<MovieDiary movieLogs={movieLogs} onAddClick={vi.fn()} onSelectMovie={vi.fn()} />);
+    render(
+      <MemoryRouter>
+        <MovieDiary movieLogs={movieLogs} onAddClick={vi.fn()} onSelectMovie={vi.fn()} />
+      </MemoryRouter>,
+    );
 
     expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
 
