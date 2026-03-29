@@ -24,9 +24,13 @@ function formatDateInputValue(date: Date): string {
     return `${year}-${month}-${day}`;
 }
 
+function getTodayDateInputValue(): string {
+    return formatDateInputValue(new Date());
+}
+
 function toDateInputValue(rawDate?: string): string {
     if (!rawDate) {
-        return formatDateInputValue(new Date());
+        return getTodayDateInputValue();
     }
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
@@ -35,7 +39,7 @@ function toDateInputValue(rawDate?: string): string {
 
     const parsedDate = new Date(rawDate);
     if (Number.isNaN(parsedDate.getTime())) {
-        return formatDateInputValue(new Date());
+        return getTodayDateInputValue();
     }
 
     return formatDateInputValue(parsedDate);
@@ -54,10 +58,10 @@ function validateMovieForm(data: MovieFormData): FormErrors {
     if (!data.watchDate) {
         errors.watchDate = 'Watch date is required';
     } else {
-        const dateObj = new Date(data.watchDate);
-        if (Number.isNaN(dateObj.getTime())) {
+        const isDateInputFormat = /^\d{4}-\d{2}-\d{2}$/.test(data.watchDate);
+        if (!isDateInputFormat) {
             errors.watchDate = 'Invalid date format';
-        } else if (dateObj > new Date()) {
+        } else if (data.watchDate > getTodayDateInputValue()) {
             errors.watchDate = 'Watch date cannot be in the future';
         }
     }
@@ -111,9 +115,11 @@ export function useMovieForm(onSave: (movie: MovieInput) => void, initialData?: 
 
         const parsedRating = formData.rating === '' ? undefined : Number(formData.rating);
 
+        const watchDateToSave = formData.watchDate || getTodayDateInputValue();
+
         onSave({
             movieName: formData.title.trim(),
-            watchDate: formData.watchDate,
+            watchDate: watchDateToSave,
             rating: parsedRating,
             review: formData.review.trim() || undefined,
             movieLink: formData.movieLink.trim() || undefined,

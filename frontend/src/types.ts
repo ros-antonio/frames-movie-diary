@@ -29,3 +29,26 @@ export interface MovieInput {
     review?: string;
     movieLink?: string;
 }
+
+export interface UserPreference {
+    viewMode: 'table' | 'card';
+    sortBy: 'movieName' | 'watchDate' | 'none';
+    sortOrder: 'asc' | 'desc' | 'none';
+    itemsPerPage: number;
+}
+
+export interface ActivityEvent {
+    eventType: 'view' | 'add' | 'edit' | 'delete' | 'page_visit' | 'preference_change';
+    movieId?: string;
+    timestamp: string;
+    pageRoute: string;
+    details?: Record<string, unknown>;
+}
+
+export interface UserActivityLog {
+    sessionId: string;
+    preferences: UserPreference;
+    activities: ActivityEvent[];
+    lastActive: string;
+    createdAt: string;
+}

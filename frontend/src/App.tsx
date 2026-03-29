@@ -9,6 +9,7 @@ import { RegisterPage } from './components/RegisterPage';
 import { Statistics } from './components/Statistics';
 import { CustomLists } from './components/CustomLists';
 import { useAppState } from './hooks/useAppState';
+import { useUserActivity } from './hooks/useUserActivity';
 
 function DiaryRoute({ movieLogs, onAddClick, onSelectMovie }: {
   movieLogs: MovieLog[];
@@ -81,6 +82,7 @@ function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: 
 
 export default function App() {
   const navigate = useNavigate();
+  const { logActivity } = useUserActivity({ trackPageVisits: true });
   const {
     movieLogs,
     customLists,
@@ -121,7 +123,10 @@ export default function App() {
           <DiaryRoute
             movieLogs={movieLogs}
             onAddClick={() => navigate('/diary/new')}
-            onSelectMovie={(id) => navigate(`/diary/${id}`)}
+            onSelectMovie={(id) => {
+              logActivity({ eventType: 'view', movieId: id, pageRoute: '/diary' });
+              navigate(`/diary/${id}`);
+            }}
           />
         }
       />

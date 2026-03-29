@@ -4,6 +4,30 @@ import { describe, expect, it, vi } from 'vitest';
 import { useMovieForm } from './useMovieForm';
 
 describe('useMovieForm', () => {
+  it('allows quick submit with title only using default watch date', () => {
+    const onSave = vi.fn();
+    const { result } = renderHook(() => useMovieForm(onSave));
+
+    act(() => {
+      result.current.setFormData({
+        ...result.current.formData,
+        title: 'Quick Log Movie',
+      });
+    });
+
+    act(() => {
+      result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.SyntheticEvent);
+    });
+
+    expect(onSave).toHaveBeenCalledOnce();
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        movieName: 'Quick Log Movie',
+        watchDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      }),
+    );
+  });
+
   it('submits valid data and keeps rating optional', () => {
     const onSave = vi.fn();
     const { result } = renderHook(() => useMovieForm(onSave));

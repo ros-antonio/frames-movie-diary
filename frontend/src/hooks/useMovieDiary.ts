@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { MovieLog } from '../types';
+import { getPreferences } from './useUserActivity';
 
 type ViewMode = 'table' | 'card';
 type SortField = 'movieName' | 'watchDate';
@@ -7,8 +8,15 @@ type SortOrder = 'asc' | 'desc';
 
 export function useMovieDiary(movieLogs: MovieLog[], itemsPerPage: number = 6) {
     const [currentPage, setCurrentPage] = useState(1);
-    const [viewMode, setViewMode] = useState<ViewMode>('table');
-    const [sortConfig, setSortConfig] = useState<{ field: SortField; order: SortOrder } | null>(null);
+    const [viewMode, setViewMode] = useState<ViewMode>(() => getPreferences().viewMode);
+    const [sortConfig, setSortConfig] = useState<{ field: SortField; order: SortOrder } | null>(
+        () => {
+            const savedPreferences = getPreferences();
+            return savedPreferences.sortBy === 'none' || savedPreferences.sortOrder === 'none'
+                ? null
+                : { field: savedPreferences.sortBy, order: savedPreferences.sortOrder };
+        }
+    );
 
     const sortedMovies = useMemo(() => {
         const items = [...movieLogs];

@@ -13,14 +13,15 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
         currentPage,
         setCurrentPage,
         viewMode,
-        setViewMode,
         totalPages,
         currentMovies,
-        requestSort,
+        handleViewModeChange,
+        handleSortChange,
         getSortDirection,
         goToStatistics,
         goToCustomLists,
     } = useMovieDiaryPage(movieLogs);
+
 
     const renderSortIcon = (field: 'movieName' | 'watchDate') => {
         const direction = getSortDirection(field);
@@ -63,14 +64,14 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                     <div className="flex gap-2 rounded-lg p-1 bg-[#223662]">
                         <button
                             aria-label="Table view"
-                            onClick={() => setViewMode('table')}
+                            onClick={() => handleViewModeChange('table')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
                         >
                             <TableIcon className="w-4 h-4" />
                         </button>
                         <button
                             aria-label="Card view"
-                            onClick={() => setViewMode('card')}
+                            onClick={() => handleViewModeChange('card')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'card' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
                         >
                             <LayoutGrid className="w-4 h-4" />
@@ -85,7 +86,7 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                             <tr className="border-b border-[#B9A5D2]/20">
                                 <th className="p-4 font-semibold text-[#E0BAAA]">
                                     <button
-                                        onClick={() => requestSort('movieName')}
+                                        onClick={() => handleSortChange('movieName')}
                                         className="flex items-center gap-2 hover:text-white transition-colors"
                                     >
                                         Movie Name {renderSortIcon('movieName')}
@@ -93,7 +94,7 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                                 </th>
                                 <th className="p-4 font-semibold text-[#E0BAAA]">
                                     <button
-                                        onClick={() => requestSort('watchDate')}
+                                        onClick={() => handleSortChange('watchDate')}
                                         className="flex items-center gap-2 hover:text-white transition-colors"
                                     >
                                         Watch Date {renderSortIcon('watchDate')}
