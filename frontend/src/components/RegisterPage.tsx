@@ -1,29 +1,26 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Film, ArrowLeft } from 'lucide-react';
+import { useRegisterPage } from '../hooks/useRegisterPage';
 
 export function RegisterPage() {
-  const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
-    // Mock registration flow for now until auth API is wired.
-    navigate('/diary');
-  };
+  const {
+    name,
+    email,
+    password,
+    confirmPassword,
+    setName,
+    setEmail,
+    setPassword,
+    setConfirmPassword,
+    handleRegister,
+    goBack,
+    goToLogin,
+  } = useRegisterPage();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-[#261834]">
       <div className="max-w-md w-full space-y-8">
         <button
-          onClick={() => navigate('/')}
+          onClick={goBack}
           className="flex items-center mb-4 text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -116,7 +113,7 @@ export function RegisterPage() {
           Already have an account?{' '}
           <button
             type="button"
-            onClick={() => navigate('/login')}
+            onClick={goToLogin}
             className="hover:underline text-[#E0BAAA]"
           >
             Sign in

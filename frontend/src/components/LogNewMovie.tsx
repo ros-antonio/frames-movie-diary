@@ -1,9 +1,9 @@
 import { ArrowLeft, Film, Calendar, Star, MessageSquare, Link as LinkIcon } from 'lucide-react';
-import type { MovieLog } from '../types';
+import type { MovieInput, MovieLog } from '../types';
 import { useMovieForm } from '../hooks/useMovieForm';
 
 interface LogNewMovieProps {
-    onSave: (movie: { movieName: string; watchDate: string; rating?: number; review?: string; movieLink?: string }) => void;
+    onSave: (movie: MovieInput) => void;
     onCancel: () => void;
     initialData?: MovieLog;
 }

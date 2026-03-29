@@ -1,7 +1,6 @@
 import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import type { MovieLog } from '../types';
-import { useMovieDiary } from '../hooks/useMovieDiary';
+import { useMovieDiaryPage } from '../hooks/useMovieDiaryPage';
 
 interface MovieDiaryProps {
     movieLogs: MovieLog[];
@@ -10,17 +9,23 @@ interface MovieDiaryProps {
 }
 
 export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryProps) {
-    const navigate = useNavigate();
     const {
-        currentPage, setCurrentPage,
-        viewMode, setViewMode,
-        totalPages, currentMovies,
-        requestSort, sortConfig
-    } = useMovieDiary(movieLogs);
+        currentPage,
+        setCurrentPage,
+        viewMode,
+        setViewMode,
+        totalPages,
+        currentMovies,
+        requestSort,
+        getSortDirection,
+        goToStatistics,
+        goToCustomLists,
+    } = useMovieDiaryPage(movieLogs);
 
-    const getSortIcon = (field: 'movieName' | 'watchDate') => {
-        if (sortConfig?.field !== field) return <ArrowUpDown className="w-4 h-4 opacity-30" />;
-        return sortConfig.order === 'asc' ? ' ↑' : ' ↓';
+    const renderSortIcon = (field: 'movieName' | 'watchDate') => {
+        const direction = getSortDirection(field);
+        if (direction === 'none') return <ArrowUpDown className="w-4 h-4 opacity-30" />;
+        return direction === 'asc' ? ' ↑' : ' ↓';
     };
 
     return (
@@ -33,13 +38,16 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                         <h1 className="text-4xl font-bold" style={{ color: '#B9A5D2' }}>Movie Diary</h1>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                        <button 
-                            onClick={() => navigate('/statistics')}
+                        <button
+                            onClick={goToStatistics}
                             className="flex items-center px-4 py-2 border rounded-md border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 transition-colors"
                         >
                             <BarChart3 className="w-4 h-4 mr-2" /> Statistics
                         </button>
-                        <button className="flex items-center px-4 py-2 border rounded-md border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 transition-colors">
+                        <button
+                            onClick={goToCustomLists}
+                            className="flex items-center px-4 py-2 border rounded-md border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 transition-colors"
+                        >
                             <List className="w-4 h-4 mr-2" /> Custom Lists
                         </button>
                         <button
@@ -80,7 +88,7 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                                         onClick={() => requestSort('movieName')}
                                         className="flex items-center gap-2 hover:text-white transition-colors"
                                     >
-                                        Movie Name {getSortIcon('movieName')}
+                                        Movie Name {renderSortIcon('movieName')}
                                     </button>
                                 </th>
                                 <th className="p-4 font-semibold text-[#E0BAAA]">
@@ -88,7 +96,7 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                                         onClick={() => requestSort('watchDate')}
                                         className="flex items-center gap-2 hover:text-white transition-colors"
                                     >
-                                        Watch Date {getSortIcon('watchDate')}
+                                        Watch Date {renderSortIcon('watchDate')}
                                     </button>
                                 </th>
                             </tr>

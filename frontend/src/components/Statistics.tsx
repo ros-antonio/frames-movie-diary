@@ -2,47 +2,24 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import type { MovieLog } from '../types';
+import { getBarColor, useStatistics } from '../hooks/useStatistics';
 
 interface StatisticsProps {
   movieLogs: MovieLog[];
 }
 
-interface RatingDataEntry {
-  rating: string;
-  count: number;
-}
-
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: Array<{ value: number; payload: RatingDataEntry }>;
+  payload?: Array<{ value: number; payload: { rating: string } }>;
 }
 
-// Color gradient from cool blue to bright gold
-const getBarColor = (rating: string, count: number) => {
-  if (count === 0) return 'rgba(74, 144, 226, 0.2)';
-
-  const colorMap: { [key: string]: string } = {
-    '0': '#4A90E2',     // Muted cool blue
-    '0.5': '#4A9EE2',   // Slightly warmer blue
-    '1': '#4A90E2',     // Cool blue
-    '1.5': '#4AA8D8',   // Blue-teal
-    '2': '#4BC0C0',     // Teal
-    '2.5': '#5FD3BC',   // Cyan-teal
-    '3': '#7FD8A0',     // Light green
-    '3.5': '#A8DB7A',   // Green-yellow
-    '4': '#D4D85A',     // Yellow
-    '4.5': '#EFC842',   // Warm yellow
-    '5': '#FFD700',     // Bright gold
-  };
-
-  return colorMap[rating] || '#E0BAAA';
-};
-
-// Custom tooltip component
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg p-3 shadow-lg" style={{ backgroundColor: '#223662', border: '1px solid rgba(185, 165, 210, 0.2)' }}>
+      <div
+        className="rounded-lg p-3 shadow-lg"
+        style={{ backgroundColor: '#223662', border: '1px solid rgba(185, 165, 210, 0.2)' }}
+      >
         <p className="font-medium" style={{ color: '#E0BAAA' }}>
           {payload[0].payload.rating} ★
         </p>
@@ -57,41 +34,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 
 export function Statistics({ movieLogs }: StatisticsProps) {
   const navigate = useNavigate();
-
-  // Generate rating distribution data from actual movie logs
-  const ratingData = [
-    { rating: '0.5', count: 0 },
-    { rating: '1', count: 0 },
-    { rating: '1.5', count: 0 },
-    { rating: '2', count: 0 },
-    { rating: '2.5', count: 0 },
-    { rating: '3', count: 0 },
-    { rating: '3.5', count: 0 },
-    { rating: '4', count: 0 },
-    { rating: '4.5', count: 0 },
-    { rating: '5', count: 0 },
-  ];
-
-  // Count movies by rating
-  movieLogs.forEach((movie) => {
-    if (movie.rating !== undefined) {
-      const ratingEntry = ratingData.find((item) => parseFloat(item.rating) === movie.rating);
-      if (ratingEntry) {
-        ratingEntry.count++;
-      }
-    }
-  });
-
-  // Calculate statistics
-  const totalMovies = movieLogs.length;
-  const ratedMovies = movieLogs.filter((m) => m.rating !== undefined);
-  const averageRating = ratedMovies.length > 0
-    ? ratedMovies.reduce((sum, movie) => sum + (movie.rating || 0), 0) / ratedMovies.length
-    : 0;
-
-  const mostCommonRating = ratedMovies.length > 0
-    ? ratingData.reduce((prev, current) => (prev.count > current.count ? prev : current)).rating
-    : '-';
+  const { totalMovies, averageRating, mostCommonRating, ratingData } = useStatistics(movieLogs);
 
   return (
     <div className="min-h-screen p-8" style={{ backgroundColor: '#261834' }}>
@@ -148,10 +91,7 @@ export function Statistics({ movieLogs }: StatisticsProps) {
               Rating Distribution
             </h2>
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart
-                data={ratingData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-              >
+              <BarChart data={ratingData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="rgba(185, 165, 210, 0.1)"
@@ -187,11 +127,8 @@ export function Statistics({ movieLogs }: StatisticsProps) {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <p
-              className="text-sm text-center mt-6 opacity-70"
-              style={{ color: '#B9A5D2' }}
-            >
-              Showing the distribution of ratings from 0 to 5 stars (0.5 increments)
+            <p className="text-sm text-center mt-6 opacity-70" style={{ color: '#B9A5D2' }}>
+              Showing the distribution of ratings from 0.5 to 5 stars (0.5 increments)
             </p>
           </div>
         ) : (
@@ -205,7 +142,3 @@ export function Statistics({ movieLogs }: StatisticsProps) {
     </div>
   );
 }
-
-
-
-

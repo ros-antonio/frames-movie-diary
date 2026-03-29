@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { MovieLog } from '../types';
+import type { MovieInput, MovieLog } from '../types';
 
 interface MovieFormData {
     title: string;
@@ -33,10 +33,7 @@ function toDateInputValue(rawDate?: string): string {
     return formatDateInputValue(parsedDate);
 }
 
-export function useMovieForm(
-    onSave: (movie: { movieName: string; watchDate: string; rating?: number; review?: string; movieLink?: string }) => void,
-    initialData?: MovieLog
-) {
+export function useMovieForm(onSave: (movie: MovieInput) => void, initialData?: MovieLog) {
     const [formData, setFormData] = useState<MovieFormData>({
         title: initialData?.movieName || '',
         watchDate: toDateInputValue(initialData?.watchDate),

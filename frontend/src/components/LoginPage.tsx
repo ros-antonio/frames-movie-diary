@@ -1,23 +1,14 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Film, ArrowLeft } from 'lucide-react';
+import { useLoginPage } from '../hooks/useLoginPage';
 
 export function LoginPage() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Mock login flow for now until auth API is wired.
-    navigate('/diary');
-  };
+  const { email, password, setEmail, setPassword, handleLogin, goBack, goToRegister } = useLoginPage();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-[#261834]">
       <div className="max-w-md w-full space-y-8">
         <button
-          onClick={() => navigate('/')}
+          onClick={goBack}
           className="flex items-center mb-4 text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -80,7 +71,7 @@ export function LoginPage() {
           Don&apos;t have an account?{' '}
           <button
             type="button"
-            onClick={() => navigate('/register')}
+            onClick={goToRegister}
             className="hover:underline text-[#E0BAAA]"
           >
             Create one
@@ -90,4 +81,3 @@ export function LoginPage() {
     </div>
   );
 }
-

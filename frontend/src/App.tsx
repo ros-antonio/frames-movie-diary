@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
-import type { MovieLog } from './types';
+import type { MovieInput, MovieLog } from './types';
 import { LandingPage } from './components/LandingPage';
 import { MovieDiary } from './components/MovieDiary';
 import { LogNewMovie } from './components/LogNewMovie';
@@ -8,8 +7,8 @@ import { MovieDetail } from './components/MovieDetail';
 import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
 import { Statistics } from './components/Statistics';
-
-type MovieInput = { movieName: string; watchDate: string; rating?: number; review?: string; movieLink?: string };
+import { CustomLists } from './components/CustomLists';
+import { useAppState } from './hooks/useAppState';
 
 function DiaryRoute({ movieLogs, onAddClick, onSelectMovie }: {
   movieLogs: MovieLog[];
@@ -81,32 +80,18 @@ function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: 
 }
 
 export default function App() {
-  const [movieLogs, setMovieLogs] = useState<MovieLog[]>([]);
   const navigate = useNavigate();
-
-  const handleAddMovie = (newMovie: MovieInput) => {
-    const movie: MovieLog = {
-      ...newMovie,
-      id: crypto.randomUUID(),
-      frames: []
-    };
-    setMovieLogs((prev) => [movie, ...prev]);
-  };
-
-  const handleUpdateMovie = (movieId: string, updatedMovieData: MovieInput) => {
-    setMovieLogs((prev) =>
-        prev.map((log) => {
-          if (log.id === movieId) {
-            return { ...log, ...updatedMovieData };
-          }
-          return log;
-        })
-    );
-  };
-
-  const handleDeleteMovie = (id: string) => {
-    setMovieLogs((prev) => prev.filter((movie) => movie.id !== id));
-  };
+  const {
+    movieLogs,
+    customLists,
+    handleAddMovie,
+    handleUpdateMovie,
+    handleDeleteMovie,
+    handleCreateList,
+    handleDeleteList,
+    handleAddMovieToList,
+    handleRemoveMovieFromList,
+  } = useAppState();
 
   return (
     <Routes>
@@ -117,6 +102,19 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/statistics" element={<Statistics movieLogs={movieLogs} />} />
+      <Route
+        path="/custom-lists"
+        element={
+          <CustomLists
+            movieLogs={movieLogs}
+            customLists={customLists}
+            onCreateList={handleCreateList}
+            onDeleteList={handleDeleteList}
+            onAddMovieToList={handleAddMovieToList}
+            onRemoveMovieFromList={handleRemoveMovieFromList}
+          />
+        }
+      />
       <Route
         path="/diary"
         element={
