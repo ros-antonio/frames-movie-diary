@@ -1,6 +1,7 @@
-import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown } from 'lucide-react';
+import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown, ArrowLeftRight } from 'lucide-react';
 import type { MovieLog } from '../types';
 import { useMovieDiaryPage } from '../hooks/useMovieDiaryPage';
+import { SideBySideView } from './SideBySideView';
 
 interface MovieDiaryProps {
     movieLogs: MovieLog[];
@@ -75,6 +76,13 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                         >
                             <LayoutGrid className="w-4 h-4" />
                         </button>
+                        <button
+                            aria-label="Side-by-side view"
+                            onClick={() => setViewMode('side-by-side')}
+                            className={`p-2 rounded-md transition-all ${viewMode === 'side-by-side' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
+                        >
+                            <ArrowLeftRight className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
 
@@ -141,6 +149,16 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                             </div>
                         ))}
                     </div>
+                )}
+
+                {viewMode === 'side-by-side' && (
+                    <SideBySideView
+                        currentMovies={currentMovies}
+                        allMoviesCount={movieLogs.length}
+                        onSelectMovie={onSelectMovie}
+                        requestSort={requestSort}
+                        renderSortIcon={renderSortIcon}
+                    />
                 )}
 
                 {totalPages > 1 && (

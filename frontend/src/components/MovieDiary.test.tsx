@@ -25,10 +25,12 @@ describe('MovieDiary', () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getByText('Cards')).toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: /Log New Movie/i }));
     expect(onAddClick).toHaveBeenCalledOnce();
 
-    await user.click(screen.getByText('Arrival'));
+    await user.click(screen.getAllByText('Arrival')[0]!);
     expect(onSelectMovie).toHaveBeenCalledWith('1');
   });
 
@@ -106,6 +108,32 @@ describe('MovieDiary', () => {
     expect(screen.getByRole('button', { name: /Movie Name/i })).toBeInTheDocument();
   });
 
+  it('shows table and cards together in side-by-side mode', async () => {
+    const user = userEvent.setup();
+    const onSelectMovie = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <MovieDiary
+          movieLogs={[
+            movie('1', 'Arrival', '2026-01-01'),
+            movie('2', 'Zodiac', '2026-01-02'),
+          ]}
+          onAddClick={vi.fn()}
+          onSelectMovie={onSelectMovie}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Side-by-side view' }));
+
+    expect(screen.getByRole('button', { name: /Movie Name/i })).toBeInTheDocument();
+    expect(screen.getByText('Cards')).toBeInTheDocument();
+
+    await user.click(screen.getAllByText('Arrival')[0]!);
+    expect(onSelectMovie).toHaveBeenCalledWith('1');
+  });
+
   it('shows pagination buttons when there are more than 6 movies', async () => {
     const user = userEvent.setup();
     const movieLogs = Array.from({ length: 7 }, (_, idx) =>
@@ -122,7 +150,7 @@ describe('MovieDiary', () => {
 
     await user.click(screen.getByRole('button', { name: '2' }));
 
-    expect(screen.getByText('Movie 7')).toBeInTheDocument();
+    expect(screen.getAllByText('Movie 7').length).toBeGreaterThan(0);
   });
 });
 

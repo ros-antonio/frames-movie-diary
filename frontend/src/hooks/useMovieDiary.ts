@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
 import type { MovieLog } from '../types';
 
-type ViewMode = 'table' | 'card';
+type ViewMode = 'table' | 'card' | 'side-by-side';
 type SortField = 'movieName' | 'watchDate';
 type SortOrder = 'asc' | 'desc';
 
 export function useMovieDiary(movieLogs: MovieLog[], itemsPerPage: number = 6) {
     const [currentPage, setCurrentPage] = useState(1);
-    const [viewMode, setViewMode] = useState<ViewMode>('table');
+    const [viewMode, setViewMode] = useState<ViewMode>('side-by-side');
     const [sortConfig, setSortConfig] = useState<{ field: SortField; order: SortOrder } | null>(null);
 
     const sortedMovies = useMemo(() => {
