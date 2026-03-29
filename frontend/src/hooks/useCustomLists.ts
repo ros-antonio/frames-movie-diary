@@ -8,21 +8,51 @@ interface UseCustomListsOptions {
   onCreateList: (name: string, description: string) => void;
 }
 
+interface FormErrors {
+  name?: string;
+  description?: string;
+}
+
+function validateListForm(name: string, description: string): FormErrors {
+  const errors: FormErrors = {};
+
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    errors.name = 'List name is required';
+  } else if (trimmedName.length > 100) {
+    errors.name = 'List name must be less than 100 characters';
+  }
+
+  if (description && description.length > 500) {
+    errors.description = 'Description must be less than 500 characters';
+  }
+
+  return errors;
+}
+
 export function useCustomLists({ movieLogs, customLists, onCreateList }: UseCustomListsOptions) {
   const navigate = useNavigate();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const handleCreateList = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newListName.trim()) {
-      onCreateList(newListName, newListDescription);
-      setNewListName('');
-      setNewListDescription('');
-      setShowCreateForm(false);
+
+    const newErrors = validateListForm(newListName, newListDescription);
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      return;
     }
+
+    onCreateList(newListName.trim(), newListDescription.trim());
+    setNewListName('');
+    setNewListDescription('');
+    setShowCreateForm(false);
+    setErrors({});
   };
 
   const selectedList = useMemo(
@@ -54,11 +84,13 @@ export function useCustomLists({ movieLogs, customLists, onCreateList }: UseCust
       setShowCreateForm(false);
       setNewListName('');
       setNewListDescription('');
+      setErrors({});
     },
     handleCreateList,
     toggleViewList: (listId: string) => {
       setSelectedListId((current) => (current === listId ? null : listId));
     },
     goBackToDiary: () => navigate('/diary'),
+    errors,
   };
 }
