@@ -12,6 +12,7 @@ export function RegisterPage() {
     setPassword,
     setConfirmPassword,
     handleRegister,
+    errors,
     goBack,
     goToLogin,
   } = useRegisterPage();
@@ -51,8 +52,15 @@ export function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
+                aria-invalid={Boolean(errors.name)}
+                aria-describedby={errors.name ? 'name-error' : undefined}
                 className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
               />
+              {errors.name ? (
+                <p id="name-error" role="alert" className="text-sm text-[#E0BAAA]">
+                  {errors.name}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -66,8 +74,15 @@ export function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? 'email-error' : undefined}
                 className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
               />
+              {errors.email ? (
+                <p id="email-error" role="alert" className="text-sm text-[#E0BAAA]">
+                  {errors.email}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -81,8 +96,15 @@ export function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={errors.password ? 'password-error' : undefined}
                 className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
               />
+              {errors.password ? (
+                <p id="password-error" role="alert" className="text-sm text-[#E0BAAA]">
+                  {errors.password}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -96,8 +118,15 @@ export function RegisterPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
+                aria-invalid={Boolean(errors.confirmPassword)}
+                aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
                 className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
               />
+              {errors.confirmPassword ? (
+                <p id="confirm-password-error" role="alert" className="text-sm text-[#E0BAAA]">
+                  {errors.confirmPassword}
+                </p>
+              ) : null}
             </div>
           </div>
 

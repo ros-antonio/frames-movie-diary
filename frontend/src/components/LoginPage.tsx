@@ -2,7 +2,7 @@ import { Film, ArrowLeft } from 'lucide-react';
 import { useLoginPage } from '../hooks/useLoginPage';
 
 export function LoginPage() {
-  const { email, password, setEmail, setPassword, handleLogin, goBack, goToRegister } = useLoginPage();
+  const { email, password, setEmail, setPassword, handleLogin, errors, goBack, goToRegister } = useLoginPage();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-[#261834]">
@@ -39,8 +39,15 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? 'email-error' : undefined}
                 className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
               />
+              {errors.email ? (
+                <p id="email-error" role="alert" className="text-sm text-[#E0BAAA]">
+                  {errors.email}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -54,8 +61,15 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={errors.password ? 'password-error' : undefined}
                 className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
               />
+              {errors.password ? (
+                <p id="password-error" role="alert" className="text-sm text-[#E0BAAA]">
+                  {errors.password}
+                </p>
+              ) : null}
             </div>
           </div>
 
