@@ -22,7 +22,7 @@ export function RegisterPage() {
       <div className="max-w-md w-full space-y-8">
         <button
           onClick={goBack}
-          className="flex items-center mb-4 text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors"
+          className="flex items-center mb-4 text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors btn-press"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -54,7 +54,7 @@ export function RegisterPage() {
                 required
                 aria-invalid={Boolean(errors.name)}
                 aria-describedby={errors.name ? 'name-error' : undefined}
-                className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
+                className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2] input-smooth"
               />
               {errors.name ? (
                 <p id="name-error" role="alert" className="text-sm text-[#E0BAAA]">
@@ -76,7 +76,7 @@ export function RegisterPage() {
                 required
                 aria-invalid={Boolean(errors.email)}
                 aria-describedby={errors.email ? 'email-error' : undefined}
-                className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
+                className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2] input-smooth"
               />
               {errors.email ? (
                 <p id="email-error" role="alert" className="text-sm text-[#E0BAAA]">
@@ -98,7 +98,7 @@ export function RegisterPage() {
                 required
                 aria-invalid={Boolean(errors.password)}
                 aria-describedby={errors.password ? 'password-error' : undefined}
-                className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
+                className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2] input-smooth"
               />
               {errors.password ? (
                 <p id="password-error" role="alert" className="text-sm text-[#E0BAAA]">
@@ -120,7 +120,7 @@ export function RegisterPage() {
                 required
                 aria-invalid={Boolean(errors.confirmPassword)}
                 aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
-                className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2]"
+                className="w-full px-4 py-3 rounded-md border-0 outline-none bg-[#261834] text-[#B9A5D2] input-smooth"
               />
               {errors.confirmPassword ? (
                 <p id="confirm-password-error" role="alert" className="text-sm text-[#E0BAAA]">
@@ -132,7 +132,7 @@ export function RegisterPage() {
 
           <button
             type="submit"
-            className="w-full py-3 rounded-md font-semibold bg-[#E0BAAA] text-[#261834] hover:opacity-90 transition-opacity"
+            className="w-full py-3 rounded-md font-semibold bg-[#E0BAAA] text-[#261834] hover:opacity-90 transition-opacity btn-press"
           >
             Create Account
           </button>
@@ -143,7 +143,7 @@ export function RegisterPage() {
           <button
             type="button"
             onClick={goToLogin}
-            className="hover:underline text-[#E0BAAA]"
+            className="hover:underline text-[#E0BAAA] btn-press"
           >
             Sign in
           </button>

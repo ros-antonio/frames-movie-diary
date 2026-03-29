@@ -14,7 +14,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
     return (
         <div className="min-h-screen p-8 bg-[#261834]">
             <div className="max-w-3xl mx-auto">
-                <button onClick={onCancel} className="flex items-center mb-6 text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors">
+                <button onClick={onCancel} className="flex items-center mb-6 text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors btn-press">
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back
                 </button>
 
@@ -37,7 +37,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                                 required
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none focus:border-[#E0BAAA]/50"
+                                className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none focus:border-[#E0BAAA]/50 input-smooth"
                             />
                         </div>
 
@@ -51,7 +51,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                                     required
                                     value={formData.watchDate}
                                     onChange={(e) => setFormData({ ...formData, watchDate: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none [scheme:dark]"
+                                    className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none [scheme:dark] input-smooth"
                                 />
                             </div>
 
@@ -66,7 +66,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                                     step="0.5"
                                     value={formData.rating}
                                     onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none"
+                                    className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none input-smooth"
                                 />
                             </div>
                         </div>
@@ -79,7 +79,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                                 rows={4}
                                 value={formData.review}
                                 onChange={(e) => setFormData({ ...formData, review: e.target.value })}
-                                className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none focus:border-[#E0BAAA]/50 resize-none"
+                                className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none focus:border-[#E0BAAA]/50 resize-none input-smooth"
                             />
                         </div>
 
@@ -92,16 +92,16 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                                 value={formData.movieLink}
                                 onChange={(e) => setFormData({ ...formData, movieLink: e.target.value })}
                                 placeholder="https://... or magnet:?xt=..."
-                                className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none focus:border-[#E0BAAA]/50"
+                                className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none focus:border-[#E0BAAA]/50 input-smooth"
                             />
                         </div>
                     </div>
 
                     <div className="flex gap-4 justify-end">
-                        <button type="button" onClick={onCancel} className="px-8 py-3 rounded-md border border-[#B9A5D2]/40 text-[#B9A5D2]">
+                        <button type="button" onClick={onCancel} className="px-8 py-3 rounded-md border border-[#B9A5D2]/40 text-[#B9A5D2] btn-press">
                             Cancel
                         </button>
-                        <button type="submit" className="px-8 py-3 rounded-md bg-[#E0BAAA] text-[#261834] font-bold flex items-center">
+                        <button type="submit" className="px-8 py-3 rounded-md bg-[#E0BAAA] text-[#261834] font-bold flex items-center btn-press">
                             <Film className="w-4 h-4 mr-2" /> {initialData ? 'Update Movie' : 'Save Movie'}
                         </button>
                     </div>

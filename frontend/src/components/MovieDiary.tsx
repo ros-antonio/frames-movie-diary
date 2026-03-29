@@ -41,19 +41,19 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                     <div className="flex flex-wrap gap-3">
                         <button
                             onClick={goToStatistics}
-                            className="flex items-center px-4 py-2 border rounded-md border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 transition-colors"
+                            className="flex items-center px-4 py-2 border rounded-md border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 transition-colors btn-press"
                         >
                             <BarChart3 className="w-4 h-4 mr-2" /> Statistics
                         </button>
                         <button
                             onClick={goToCustomLists}
-                            className="flex items-center px-4 py-2 border rounded-md border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 transition-colors"
+                            className="flex items-center px-4 py-2 border rounded-md border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 transition-colors btn-press"
                         >
                             <List className="w-4 h-4 mr-2" /> Custom Lists
                         </button>
                         <button
                             onClick={onAddClick}
-                            className="flex items-center px-4 py-2 rounded-md bg-[#E0BAAA] text-[#261834] font-bold hover:opacity-90 transition-opacity"
+                            className="flex items-center px-4 py-2 rounded-md bg-[#E0BAAA] text-[#261834] font-bold hover:opacity-90 transition-opacity btn-press"
                         >
                             <Plus className="w-4 h-4 mr-2" /> Log New Movie
                         </button>
@@ -65,14 +65,14 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                         <button
                             aria-label="Table view"
                             onClick={() => handleViewModeChange('table')}
-                            className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
+                            className={`p-2 rounded-md transition-all btn-press ${viewMode === 'table' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
                         >
                             <TableIcon className="w-4 h-4" />
                         </button>
                         <button
                             aria-label="Card view"
                             onClick={() => handleViewModeChange('card')}
-                            className={`p-2 rounded-md transition-all ${viewMode === 'card' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
+                            className={`p-2 rounded-md transition-all btn-press ${viewMode === 'card' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
                         >
                             <LayoutGrid className="w-4 h-4" />
                         </button>
@@ -107,7 +107,7 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                                 <tr
                                     key={movie.id}
                                     onClick={() => onSelectMovie(movie.id)}
-                                    className="border-b border-[#B9A5D2]/10 hover:bg-[#B9A5D2]/5 cursor-pointer transition-colors"
+                                    className="border-b border-[#B9A5D2]/10 hover:bg-[#B9A5D2]/5 cursor-pointer transition-colors hover-lift"
                                 >
                                     <td className="p-4">{movie.movieName}</td>
                                     <td className="p-4">{new Date(movie.watchDate).toLocaleDateString()}</td>
@@ -129,7 +129,7 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                             <div
                                 key={movie.id}
                                 onClick={() => onSelectMovie(movie.id)}
-                                className="rounded-lg p-6 space-y-3 cursor-pointer bg-[#223662] hover:ring-2 hover:ring-[#E0BAAA] transition-all"
+                                className="rounded-lg p-6 space-y-3 cursor-pointer bg-[#223662] hover:ring-2 hover:ring-[#E0BAAA] transition-all hover-lift"
                             >
                                 <div className="flex items-start justify-between">
                                     <Film className="w-6 h-6 text-[#E0BAAA]" />
@@ -150,7 +150,7 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                             <button
                                 key={i + 1}
                                 onClick={() => setCurrentPage(i + 1)}
-                                className={`w-10 h-10 rounded-md transition-colors ${currentPage === i + 1 ? 'bg-[#E0BAAA] text-[#261834]' : 'bg-[#223662] text-[#B9A5D2]'}`}
+                                className={`w-10 h-10 rounded-md transition-colors btn-press ${currentPage === i + 1 ? 'bg-[#E0BAAA] text-[#261834]' : 'bg-[#223662] text-[#B9A5D2]'}`}
                             >
                                 {i + 1}
                             </button>

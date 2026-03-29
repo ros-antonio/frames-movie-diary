@@ -1,1 +1,47 @@
 @import "tailwindcss";
+
+html,
+body,
+#root {
+  background-color: #261834;
+}
+
+@layer utilities {
+  .btn-press {
+	transition: transform 120ms ease, opacity 160ms ease, background-color 160ms ease, color 160ms ease;
+  }
+
+  .btn-press:active {
+	transform: scale(0.95);
+  }
+
+  .input-smooth {
+	transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .input-smooth:focus {
+	box-shadow: 0 0 0 2px rgba(224, 186, 170, 0.2);
+  }
+
+  .hover-lift {
+	transition: transform 150ms ease, box-shadow 180ms ease, background-color 160ms ease;
+  }
+
+  .hover-lift:hover {
+	transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .btn-press,
+  .hover-lift,
+  .input-smooth {
+	transition: none;
+  }
+
+  .btn-press:active,
+  .hover-lift:hover {
+	transform: none;
+  }
+}

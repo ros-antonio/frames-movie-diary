@@ -30,7 +30,7 @@ export function LandingPage({ onLogin, onRegister }: LandingPageProps) {
                 <div className="flex gap-4 justify-center pt-4">
                     <button
                         onClick={onLogin}
-                        className="px-8 py-4 text-lg font-semibold hover:opacity-90 transition-opacity rounded-md"
+                        className="px-8 py-4 text-lg font-semibold hover:opacity-90 transition-opacity rounded-md btn-press"
                         style={{
                             backgroundColor: '#E0BAAA',
                             color: '#261834',
@@ -40,7 +40,7 @@ export function LandingPage({ onLogin, onRegister }: LandingPageProps) {
                     </button>
                     <button
                         onClick={onRegister}
-                        className="px-8 py-4 text-lg font-semibold hover:opacity-90 transition-opacity rounded-md border border-[#E0BAAA] text-[#E0BAAA]"
+                        className="px-8 py-4 text-lg font-semibold hover:opacity-90 transition-opacity rounded-md border border-[#E0BAAA] text-[#E0BAAA] btn-press"
                     >
                         Register
                     </button>
