@@ -1,18 +1,44 @@
 import { useState } from 'react';
 import type { CustomList, MovieInput, MovieLog } from '../types';
 
+const RANDOM_WORDS = ['Neon', 'Midnight', 'Echo', 'Crimson', 'Silver', 'Parallel', 'Velvet', 'Quantum'];
+const RANDOM_GENRES = ['Mystery', 'Drama', 'Thriller', 'Adventure', 'Noir', 'Sci-Fi', 'Comedy', 'Fantasy'];
+const RATING_OPTIONS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
+
+function pickRandomItem<T>(items: T[]) {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function getRandomWatchDate() {
+  const now = Date.now();
+  const daysBack = Math.floor(Math.random() * 730);
+  const timestamp = now - daysBack * 24 * 60 * 60 * 1000;
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
+
 export function useAppState() {
   const [movieLogs, setMovieLogs] = useState<MovieLog[]>([]);
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
 
+  const createMovieLog = (newMovie: MovieInput): MovieLog => ({
+    ...newMovie,
+    id: crypto.randomUUID(),
+    frames: [],
+  });
+
   const handleAddMovie = (newMovie: MovieInput) => {
-    const movie: MovieLog = {
-      ...newMovie,
-      id: crypto.randomUUID(),
-      frames: [],
+    setMovieLogs((prev) => [createMovieLog(newMovie), ...prev]);
+  };
+
+  const handleAddRandomMovie = () => {
+    const randomMovie: MovieInput = {
+      movieName: `${pickRandomItem(RANDOM_WORDS)} ${pickRandomItem(RANDOM_GENRES)}`,
+      watchDate: getRandomWatchDate(),
+      rating: pickRandomItem(RATING_OPTIONS),
+      review: 'Auto-generated entry for live statistics preview.',
     };
 
-    setMovieLogs((prev) => [movie, ...prev]);
+    setMovieLogs((prev) => [createMovieLog(randomMovie), ...prev]);
   };
 
   const handleUpdateMovie = (movieId: string, updatedMovieData: MovieInput) => {
@@ -77,6 +103,7 @@ export function useAppState() {
     movieLogs,
     customLists,
     handleAddMovie,
+    handleAddRandomMovie,
     handleUpdateMovie,
     handleDeleteMovie,
     handleCreateList,

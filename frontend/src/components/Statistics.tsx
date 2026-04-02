@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -6,6 +7,7 @@ import { getBarColor, useStatistics } from '../hooks/useStatistics';
 
 interface StatisticsProps {
   movieLogs: MovieLog[];
+  onAddRandomMovie: () => void;
 }
 
 interface CustomTooltipProps {
@@ -32,9 +34,41 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   return null;
 };
 
-export function Statistics({ movieLogs }: StatisticsProps) {
+export function Statistics({ movieLogs, onAddRandomMovie }: StatisticsProps) {
   const navigate = useNavigate();
   const { totalMovies, averageRating, mostCommonRating, ratingData } = useStatistics(movieLogs);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopGeneration = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsGenerating(false);
+  };
+
+  const toggleGeneration = () => {
+    if (isGenerating) {
+      stopGeneration();
+      return;
+    }
+
+    onAddRandomMovie();
+    intervalRef.current = setInterval(() => {
+      onAddRandomMovie();
+    }, 2000);
+    setIsGenerating(true);
+  };
+
+  useEffect(
+    () => () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    },
+    [],
+  );
 
   return (
     <div className="min-h-screen p-8" style={{ backgroundColor: '#261834' }}>
@@ -49,11 +83,23 @@ export function Statistics({ movieLogs }: StatisticsProps) {
         </button>
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <BarChart3 className="w-8 h-8" style={{ color: '#E0BAAA' }} />
-          <h1 className="text-4xl font-bold" style={{ color: '#B9A5D2' }}>
-            Rating Statistics
-          </h1>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <BarChart3 className="w-8 h-8" style={{ color: '#E0BAAA' }} />
+            <h1 className="text-4xl font-bold" style={{ color: '#B9A5D2' }}>
+              Rating Statistics
+            </h1>
+          </div>
+          <button
+            onClick={toggleGeneration}
+            className="px-4 py-2 rounded-md font-medium transition-colors"
+            style={{
+              backgroundColor: isGenerating ? '#7F1D1D' : '#14532D',
+              color: '#F8FAFC',
+            }}
+          >
+            {isGenerating ? 'Stop Auto Generate' : 'Start Auto Generate'}
+          </button>
         </div>
 
         {/* Summary Cards */}

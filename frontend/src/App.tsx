@@ -85,6 +85,7 @@ export default function App() {
     movieLogs,
     customLists,
     handleAddMovie,
+    handleAddRandomMovie,
     handleUpdateMovie,
     handleDeleteMovie,
     handleCreateList,
@@ -101,7 +102,7 @@ export default function App() {
       />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/statistics" element={<Statistics movieLogs={movieLogs} />} />
+      <Route path="/statistics" element={<Statistics movieLogs={movieLogs} onAddRandomMovie={handleAddRandomMovie} />} />
       <Route
         path="/custom-lists"
         element={
