@@ -9,25 +9,25 @@ export function LandingPage({ onLogin, onRegister }: LandingPageProps) {
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-[#261834]">
             <div className="max-w-2xl w-full text-center space-y-8">
-                <div className="flex justify-center">
-                    <div className="w-24 h-24 rounded-2xl bg-[#223662] flex items-center justify-center">
+                <div className="flex justify-center landing-reveal">
+                    <div className="w-24 h-24 rounded-2xl bg-[#223662] flex items-center justify-center landing-icon-float">
                         <Film className="w-12 h-12" style={{ color: '#E0BAAA' }} />
                     </div>
                 </div>
 
-                <h1 className="text-6xl tracking-tight font-bold" style={{ color: '#B9A5D2' }}>
+                <h1 className="text-6xl tracking-tight font-bold landing-reveal landing-delay-1" style={{ color: '#B9A5D2' }}>
                     Frames
                 </h1>
 
-                <p className="text-2xl font-medium" style={{ color: '#E0BAAA' }}>
+                <p className="text-2xl font-medium landing-reveal landing-delay-2" style={{ color: '#E0BAAA' }}>
                     Collect the moments that move you
                 </p>
 
-                <p className="text-lg leading-relaxed max-w-xl mx-auto opacity-90" style={{ color: '#B9A5D2' }}>
+                <p className="text-lg leading-relaxed max-w-xl mx-auto opacity-90 landing-reveal landing-delay-3" style={{ color: '#B9A5D2' }}>
                     A private gallery to log your watches, rate your favorites, and preserve your cinematic souvenirs long after the credits roll.
                 </p>
 
-                <div className="flex gap-4 justify-center pt-4">
+                <div className="flex gap-4 justify-center pt-4 landing-reveal landing-delay-3">
                     <button
                         onClick={onLogin}
                         className="px-8 py-4 text-lg font-semibold hover:opacity-90 transition-opacity rounded-md btn-press"
