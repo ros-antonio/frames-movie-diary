@@ -166,5 +166,54 @@ describe('useAppState', () => {
 
     expect(result.current.customLists[0].movieIds).toEqual(['00000000-0000-4000-8000-000000000001']);
   });
+
+  it('adds uploaded frame data to a movie', () => {
+    const { result } = renderHook(() => useAppState());
+
+    act(() => {
+      result.current.handleAddMovie({ movieName: 'Inception', watchDate: '2026-08-12' });
+      result.current.handleAddFrameToMovie('00000000-0000-4000-8000-000000000001', {
+        imageUrl: 'data:image/png;base64,AAAA',
+        timestamp: '00:42:10',
+        caption: 'Hallway scene',
+      });
+    });
+
+    expect(result.current.movieLogs[0].frames).toHaveLength(1);
+    expect(result.current.movieLogs[0].frames[0]).toEqual({
+      id: '00000000-0000-4000-8000-000000000002',
+      imageUrl: 'data:image/png;base64,AAAA',
+      timestamp: '00:42:10',
+      caption: 'Hallway scene',
+    });
+  });
+
+  it('deletes a frame from a movie by frame id', () => {
+    const { result } = renderHook(() => useAppState());
+
+    act(() => {
+      result.current.handleAddMovie({ movieName: 'Inception', watchDate: '2026-08-12' });
+      result.current.handleAddFrameToMovie('00000000-0000-4000-8000-000000000001', {
+        imageUrl: 'data:image/png;base64,AAAA',
+        timestamp: '00:42:10',
+        caption: 'Hallway scene',
+      });
+      result.current.handleAddFrameToMovie('00000000-0000-4000-8000-000000000001', {
+        imageUrl: 'data:image/png;base64,BBBB',
+        timestamp: '00:50:00',
+        caption: 'Snow fight',
+      });
+    });
+
+    act(() => {
+      result.current.handleDeleteFrameFromMovie(
+        '00000000-0000-4000-8000-000000000001',
+        '00000000-0000-4000-8000-000000000002',
+      );
+    });
+
+    expect(result.current.movieLogs[0].frames).toHaveLength(1);
+    expect(result.current.movieLogs[0].frames[0].caption).toBe('Snow fight');
+  });
 });
 

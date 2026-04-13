@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CustomList, MovieInput, MovieLog } from '../types';
+import type { CustomList, MovieInput, MovieLog, SavedFrame } from '../types';
 
 export function useAppState() {
   const [movieLogs, setMovieLogs] = useState<MovieLog[]>([]);
@@ -73,6 +73,42 @@ export function useAppState() {
     );
   };
 
+  const handleAddFrameToMovie = (movieId: string, frameData: Omit<SavedFrame, 'id'>) => {
+    setMovieLogs((prev) =>
+      prev.map((movie) => {
+        if (movie.id !== movieId) {
+          return movie;
+        }
+
+        return {
+          ...movie,
+          frames: [
+            {
+              ...frameData,
+              id: crypto.randomUUID(),
+            },
+            ...movie.frames,
+          ],
+        };
+      }),
+    );
+  };
+
+  const handleDeleteFrameFromMovie = (movieId: string, frameId: string) => {
+    setMovieLogs((prev) =>
+      prev.map((movie) => {
+        if (movie.id !== movieId) {
+          return movie;
+        }
+
+        return {
+          ...movie,
+          frames: movie.frames.filter((frame) => frame.id !== frameId),
+        };
+      }),
+    );
+  };
+
   return {
     movieLogs,
     customLists,
@@ -83,6 +119,8 @@ export function useAppState() {
     handleDeleteList,
     handleAddMovieToList,
     handleRemoveMovieFromList,
+    handleAddFrameToMovie,
+    handleDeleteFrameFromMovie,
   };
 }
 

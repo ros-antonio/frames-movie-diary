@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
-import type { MovieInput, MovieLog } from './types';
+import type { MovieInput, MovieLog, SavedFrame } from './types';
 import { LandingPage } from './components/LandingPage';
 import { MovieDiary } from './components/MovieDiary';
 import { LogNewMovie } from './components/LogNewMovie';
@@ -37,7 +37,17 @@ function AddMovieRoute({ onSave }: { onSave: (newMovie: MovieInput) => void }) {
   );
 }
 
-function MovieDetailRoute({ movieLogs, onDelete }: { movieLogs: MovieLog[]; onDelete: (id: string) => void }) {
+function MovieDetailRoute({
+  movieLogs,
+  onDelete,
+  onAddFrame,
+  onDeleteFrame,
+}: {
+  movieLogs: MovieLog[];
+  onDelete: (id: string) => void;
+  onAddFrame: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => void;
+  onDeleteFrame: (movieId: string, frameId: string) => void;
+}) {
   const navigate = useNavigate();
   const { movieId } = useParams();
   const movie = movieLogs.find((item) => item.id === movieId);
@@ -55,6 +65,8 @@ function MovieDetailRoute({ movieLogs, onDelete }: { movieLogs: MovieLog[]; onDe
         navigate('/diary');
       }}
       onEdit={() => navigate(`/diary/${movie.id}/edit`)}
+      onAddFrame={onAddFrame}
+      onDeleteFrame={onDeleteFrame}
     />
   );
 }
@@ -93,6 +105,8 @@ export default function App() {
     handleDeleteList,
     handleAddMovieToList,
     handleRemoveMovieFromList,
+    handleAddFrameToMovie,
+    handleDeleteFrameFromMovie,
   } = useAppState();
 
   return (
@@ -131,7 +145,17 @@ export default function App() {
         }
       />
       <Route path="/diary/new" element={<AddMovieRoute onSave={handleAddMovie} />} />
-      <Route path="/diary/:movieId" element={<MovieDetailRoute movieLogs={movieLogs} onDelete={handleDeleteMovie} />} />
+      <Route
+        path="/diary/:movieId"
+        element={
+          <MovieDetailRoute
+            movieLogs={movieLogs}
+            onDelete={handleDeleteMovie}
+            onAddFrame={handleAddFrameToMovie}
+            onDeleteFrame={handleDeleteFrameFromMovie}
+          />
+        }
+      />
       <Route
         path="/diary/:movieId/edit"
         element={<EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} />}
