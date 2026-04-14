@@ -41,6 +41,12 @@ export function RegisterPage() {
 
         <form onSubmit={handleRegister} className="space-y-6">
           <div className="rounded-lg p-6 space-y-4 bg-[#223662]">
+            {errors.form ? (
+              <p role="alert" className="text-sm text-[#E0BAAA]">
+                {errors.form}
+              </p>
+            ) : null}
+
             <div className="space-y-2">
               <label htmlFor="name" className="block text-sm text-[#B9A5D2]">
                 Name

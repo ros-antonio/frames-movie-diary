@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { registerUser } from '../api/movieDiaryApi';
 
 interface FormErrors {
   name?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
+  form?: string;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,13 +59,14 @@ function validateRegistrationForm(name: string, email: string, password: string,
 
 export function useRegisterPage() {
   const navigate = useNavigate();
+  const useBackend = import.meta.env.MODE !== 'test';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newErrors = validateRegistrationForm(name, email, password, confirmPassword);
@@ -73,8 +76,26 @@ export function useRegisterPage() {
       return;
     }
 
-    // Mock registration flow for now until auth API is wired.
-    navigate('/diary');
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!useBackend) {
+      navigate('/diary');
+      return;
+    }
+
+    try {
+      await registerUser({
+        name: trimmedName,
+        email: trimmedEmail,
+        password,
+        confirmPassword,
+      });
+      navigate('/diary');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Registration failed';
+      setErrors((prev) => ({ ...prev, form: message }));
+    }
   };
 
   return {

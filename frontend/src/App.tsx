@@ -23,14 +23,16 @@ function DiaryRoute({ movieLogs, onAddClick, onSelectMovie }: {
   );
 }
 
-function AddMovieRoute({ onSave }: { onSave: (newMovie: MovieInput) => void }) {
+function AddMovieRoute({ onSave }: { onSave: (newMovie: MovieInput) => Promise<boolean> }) {
   const navigate = useNavigate();
 
   return (
     <LogNewMovie
-      onSave={(newMovie) => {
-        onSave(newMovie);
-        navigate('/diary');
+      onSave={async (newMovie) => {
+        const saved = await onSave(newMovie);
+        if (saved) {
+          navigate('/diary');
+        }
       }}
       onCancel={() => navigate('/diary')}
     />
@@ -44,9 +46,9 @@ function MovieDetailRoute({
   onDeleteFrame,
 }: {
   movieLogs: MovieLog[];
-  onDelete: (id: string) => void;
-  onAddFrame: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => void;
-  onDeleteFrame: (movieId: string, frameId: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
+  onAddFrame: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => Promise<boolean>;
+  onDeleteFrame: (movieId: string, frameId: string) => Promise<boolean>;
 }) {
   const navigate = useNavigate();
   const { movieId } = useParams();
@@ -60,9 +62,11 @@ function MovieDetailRoute({
     <MovieDetail
       movie={movie}
       onBack={() => navigate('/diary')}
-      onDelete={(id) => {
-        onDelete(id);
-        navigate('/diary');
+      onDelete={async (id) => {
+        const deleted = await onDelete(id);
+        if (deleted) {
+          navigate('/diary');
+        }
       }}
       onEdit={() => navigate(`/diary/${movie.id}/edit`)}
       onAddFrame={onAddFrame}
@@ -71,7 +75,7 @@ function MovieDetailRoute({
   );
 }
 
-function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: (id: string, updatedMovie: MovieInput) => void }) {
+function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: (id: string, updatedMovie: MovieInput) => Promise<boolean> }) {
   const navigate = useNavigate();
   const { movieId } = useParams();
   const movie = movieLogs.find((item) => item.id === movieId);
@@ -83,9 +87,12 @@ function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: 
   return (
     <LogNewMovie
       initialData={movie}
-      onSave={(updatedMovie) => {
-        onSave(movie.id, updatedMovie);
-        navigate(`/diary/${movie.id}`);
+      onSave={async (updatedMovie) => {
+
+        const saved = await onSave(movie.id, updatedMovie);
+        if (saved) {
+          navigate(`/diary/${movie.id}`);
+        }
       }}
       onCancel={() => navigate(`/diary/${movie.id}`)}
     />
@@ -98,6 +105,8 @@ export default function App() {
   const {
     movieLogs,
     customLists,
+    operationError,
+    clearOperationError,
     handleAddMovie,
     handleUpdateMovie,
     handleDeleteMovie,
@@ -110,7 +119,22 @@ export default function App() {
   } = useAppState();
 
   return (
-    <Routes>
+    <>
+      {operationError && (
+        <div className="fixed left-1/2 top-4 z-50 w-[min(90vw,42rem)] -translate-x-1/2 rounded-lg border border-red-500/60 bg-red-900/90 px-4 py-3 text-sm text-red-100 shadow-lg">
+          <div className="flex items-start justify-between gap-4">
+            <p>{operationError}</p>
+            <button
+              type="button"
+              onClick={clearOperationError}
+              className="rounded bg-red-800 px-2 py-1 text-xs font-medium hover:bg-red-700"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+      <Routes>
       <Route
         path="/"
         element={<LandingPage onLogin={() => navigate('/login')} onRegister={() => navigate('/register')} />}
@@ -161,6 +185,7 @@ export default function App() {
         element={<EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }

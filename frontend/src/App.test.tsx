@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -23,6 +23,9 @@ describe('App', () => {
     await user.clear(dateInput);
     await user.type(dateInput, date);
     await user.click(screen.getByRole('button', { name: /Save Movie/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Movie Diary' })).toBeInTheDocument();
+    });
   }
 
   function renderApp(initialEntries: string[] = ['/']) {
@@ -92,11 +95,15 @@ describe('App', () => {
     await user.type(editTitleInput, 'Updated Title');
     await user.click(screen.getByRole('button', { name: /Update Movie/i }));
 
-    expect(screen.getByRole('heading', { name: 'Updated Title' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Updated Title' })).toBeInTheDocument();
+    });
 
     await user.click(screen.getByTitle('Delete Movie'));
 
-    expect(screen.getByRole('heading', { name: 'Movie Diary' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Movie Diary' })).toBeInTheDocument();
+    });
     expect(screen.queryByText('Updated Title')).not.toBeInTheDocument();
     expect(screen.getByText('Second Title')).toBeInTheDocument();
   });

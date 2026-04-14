@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import type { MovieLog } from '../types';
+import { useEffect, useMemo, useState } from 'react';
+import type { MovieLog, StatisticsOverview } from '../types';
+import { movieDiaryApi } from '../api/movieDiaryApi';
 
 export interface RatingDataEntry {
   rating: string;
@@ -7,6 +8,43 @@ export interface RatingDataEntry {
 }
 
 const RATING_BUCKETS = ['0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5'];
+
+function computeLocalStats(movieLogs: MovieLog[]) {
+  const ratingData = RATING_BUCKETS.map((rating) => ({ rating, count: 0 }));
+
+  movieLogs.forEach((movie) => {
+    if (movie.rating === undefined) return;
+    const key = String(movie.rating);
+    const bucket = ratingData.find((entry) => entry.rating === key);
+    if (bucket) {
+      bucket.count += 1;
+    }
+  });
+
+  const ratedMovies = movieLogs.filter((movie) => movie.rating !== undefined);
+  const averageRating =
+    ratedMovies.length === 0
+      ? 0
+      : ratedMovies.reduce((sum, movie) => sum + (movie.rating || 0), 0) / ratedMovies.length;
+  const mostCommonRating =
+    ratedMovies.length === 0
+      ? '-'
+      : ratingData.reduce((prev, current) => (prev.count > current.count ? prev : current)).rating;
+
+  return {
+    totalMovies: movieLogs.length,
+    averageRating,
+    mostCommonRating,
+    ratingData,
+  };
+}
+
+function toRatingData(distribution: Record<string, number>): RatingDataEntry[] {
+  return RATING_BUCKETS.map((rating) => ({
+    rating,
+    count: distribution[rating] ?? 0,
+  }));
+}
 
 export function getBarColor(rating: string, count: number) {
   if (count === 0) return 'rgba(74, 144, 226, 0.2)';
@@ -28,38 +66,41 @@ export function getBarColor(rating: string, count: number) {
 }
 
 export function useStatistics(movieLogs: MovieLog[]) {
-  const ratingData = useMemo<RatingDataEntry[]>(() => {
-    const buckets = RATING_BUCKETS.map((rating) => ({ rating, count: 0 }));
+  const useBackend = import.meta.env.MODE !== 'test';
+  const localStats = useMemo(() => computeLocalStats(movieLogs), [movieLogs]);
+  const [backendOverview, setBackendOverview] = useState<StatisticsOverview | null>(null);
 
-    movieLogs.forEach((movie) => {
-      if (movie.rating === undefined) return;
-      const key = String(movie.rating);
-      const bucket = buckets.find((entry) => entry.rating === key);
-      if (bucket) {
-        bucket.count += 1;
-      }
-    });
+  useEffect(() => {
+    if (!useBackend) {
+      return;
+    }
 
-    return buckets;
-  }, [movieLogs]);
+    movieDiaryApi
+      .getStatisticsOverview()
+      .then((overview) => {
+        setBackendOverview(overview);
+      })
+      .catch(() => {
+        // Fall back to local derived statistics when backend stats cannot be loaded.
+        setBackendOverview(null);
+      });
+  }, [useBackend, movieLogs]);
 
-  const ratedMovies = useMemo(() => movieLogs.filter((movie) => movie.rating !== undefined), [movieLogs]);
+  if (!backendOverview) {
+    return localStats;
+  }
 
-  const averageRating = useMemo(() => {
-    if (ratedMovies.length === 0) return 0;
-    return ratedMovies.reduce((sum, movie) => sum + (movie.rating || 0), 0) / ratedMovies.length;
-  }, [ratedMovies]);
-
-  const mostCommonRating = useMemo(() => {
-    if (ratedMovies.length === 0) return '-';
-    return ratingData.reduce((prev, current) => (prev.count > current.count ? prev : current)).rating;
-  }, [ratedMovies, ratingData]);
+  const mostCommonRating = (() => {
+    const ratingData = toRatingData(backendOverview.ratingDistribution);
+    const max = ratingData.reduce((prev, current) => (prev.count > current.count ? prev : current));
+    return max.count > 0 ? max.rating : '-';
+  })();
 
   return {
-    totalMovies: movieLogs.length,
-    averageRating,
+    totalMovies: backendOverview.totalMovies,
+    averageRating: backendOverview.averageRating ?? 0,
     mostCommonRating,
-    ratingData,
+    ratingData: toRatingData(backendOverview.ratingDistribution),
   };
 }
 

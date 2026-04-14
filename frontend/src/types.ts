@@ -30,6 +30,12 @@ export interface MovieInput {
     movieLink?: string;
 }
 
+export interface AuthUser {
+    id: string;
+    name: string;
+    email: string;
+}
+
 export interface UserPreference {
     viewMode: 'table' | 'card';
     sortBy: 'movieName' | 'watchDate' | 'none';
@@ -52,3 +58,19 @@ export interface UserActivityLog {
     lastActive: string;
     createdAt: string;
 }
+
+export interface StatisticsOverview {
+    totalMovies: number;
+    ratedMovies: number;
+    unratedMovies: number;
+    averageRating: number | null;
+    totalFrames: number;
+    moviesWithFrames: number;
+    topRatedMovies: Array<{
+        id: string;
+        movieName: string;
+        rating?: number;
+    }>;
+    ratingDistribution: Record<string, number>;
+}
+
