@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { app, createMovie, resetStore } from './testUtils.js';
+import { app, createList, createMovie, resetStore } from './testUtils.js';
 
 describe('movies API', () => {
   beforeEach(() => {
@@ -27,6 +27,24 @@ describe('movies API', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toBe('Validation failed');
+  });
+
+  it('rejects watchDate with invalid format and invalid calendar date', async () => {
+    const invalidFormat = await request(app).post('/api/movies').send({
+      movieName: 'Bad Date Format',
+      watchDate: '2025/01/10',
+    });
+
+    expect(invalidFormat.status).toBe(400);
+    expect(invalidFormat.body.message).toBe('Validation failed');
+
+    const invalidDate = await request(app).post('/api/movies').send({
+      movieName: 'Bad Date Value',
+      watchDate: '2025-13-40',
+    });
+
+    expect(invalidDate.status).toBe(400);
+    expect(invalidDate.body.message).toBe('Validation failed');
   });
 
   it('supports pagination from server side', async () => {
@@ -65,6 +83,22 @@ describe('movies API', () => {
 
     const missing = await request(app).get(`/api/movies/${created.body.id}`);
     expect(missing.status).toBe(404);
+  });
+
+  it('removes deleted movie ids from related lists', async () => {
+    const movie = await createMovie();
+    const list = await createList();
+
+    const added = await request(app).post(`/api/lists/${list.body.id}/movies/${movie.body.id}`);
+    expect(added.status).toBe(200);
+    expect(added.body.movieIds).toEqual([movie.body.id]);
+
+    const deleted = await request(app).delete(`/api/movies/${movie.body.id}`);
+    expect(deleted.status).toBe(204);
+
+    const fetchedList = await request(app).get(`/api/lists/${list.body.id}`);
+    expect(fetchedList.status).toBe(200);
+    expect(fetchedList.body.movieIds).toEqual([]);
   });
 
   it('adds and removes a frame', async () => {

@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
 import type { MovieInput, MovieLog, SavedFrame } from './types';
 import { LandingPage } from './components/LandingPage';
 import { MovieDiary } from './components/MovieDiary';
@@ -105,8 +106,11 @@ export default function App() {
   const {
     movieLogs,
     customLists,
+    isOffline,
+    pendingSyncCount,
     operationError,
     clearOperationError,
+    syncPendingOperations,
     handleAddMovie,
     handleUpdateMovie,
     handleDeleteMovie,
@@ -117,11 +121,39 @@ export default function App() {
     handleAddFrameToMovie,
     handleDeleteFrameFromMovie,
   } = useAppState();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncClick = async () => {
+    setIsSyncing(true);
+    await syncPendingOperations();
+    setIsSyncing(false);
+  };
 
   return (
     <>
+      {(isOffline || pendingSyncCount > 0) && (
+        <div className="fixed left-1/2 top-4 z-50 w-[min(90vw,42rem)] -translate-x-1/2 rounded-lg border border-amber-500/60 bg-amber-900/90 px-4 py-3 text-sm text-amber-100 shadow-lg">
+          <div className="flex items-center justify-between gap-4">
+            <p>
+              {isOffline
+                ? `Offline mode enabled. Pending sync operations: ${pendingSyncCount}.`
+                : `Pending sync operations: ${pendingSyncCount}.`}
+            </p>
+            {pendingSyncCount > 0 && (
+              <button
+                type="button"
+                onClick={() => void handleSyncClick()}
+                disabled={isSyncing}
+                className="rounded bg-amber-800 px-2 py-1 text-xs font-medium hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSyncing ? 'Syncing...' : 'Sync now'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       {operationError && (
-        <div className="fixed left-1/2 top-4 z-50 w-[min(90vw,42rem)] -translate-x-1/2 rounded-lg border border-red-500/60 bg-red-900/90 px-4 py-3 text-sm text-red-100 shadow-lg">
+        <div className="fixed left-1/2 top-20 z-50 w-[min(90vw,42rem)] -translate-x-1/2 rounded-lg border border-red-500/60 bg-red-900/90 px-4 py-3 text-sm text-red-100 shadow-lg">
           <div className="flex items-start justify-between gap-4">
             <p>{operationError}</p>
             <button

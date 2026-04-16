@@ -42,5 +42,19 @@ describe('statistics API', () => {
     expect(response.body.moviesWithFrames).toBe(2);
     expect(response.body.topRatedMovies[0].rating).toBe(5);
   });
+
+  it('returns null average when no movies are rated', async () => {
+    await createMovie({ movieName: 'Unrated A', rating: undefined, watchDate: '2025-02-01' });
+    await createMovie({ movieName: 'Unrated B', rating: undefined, watchDate: '2025-02-02' });
+
+    const response = await request(app).get('/api/statistics/overview');
+
+    expect(response.status).toBe(200);
+    expect(response.body.totalMovies).toBe(2);
+    expect(response.body.ratedMovies).toBe(0);
+    expect(response.body.averageRating).toBeNull();
+    expect(response.body.ratingDistribution['5']).toBe(0);
+    expect(response.body.topRatedMovies).toEqual([]);
+  });
 });
 

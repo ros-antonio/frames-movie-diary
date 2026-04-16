@@ -7,6 +7,10 @@ export interface RatingDataEntry {
   count: number;
 }
 
+interface UseStatisticsOptions {
+  forceBackend?: boolean;
+}
+
 const RATING_BUCKETS = ['0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5'];
 
 function computeLocalStats(movieLogs: MovieLog[]) {
@@ -65,8 +69,8 @@ export function getBarColor(rating: string, count: number) {
   return colorMap[rating] || '#E0BAAA';
 }
 
-export function useStatistics(movieLogs: MovieLog[]) {
-  const useBackend = import.meta.env.MODE !== 'test';
+export function useStatistics(movieLogs: MovieLog[], options?: UseStatisticsOptions) {
+  const useBackend = options?.forceBackend ?? import.meta.env.MODE !== 'test';
   const localStats = useMemo(() => computeLocalStats(movieLogs), [movieLogs]);
   const [backendOverview, setBackendOverview] = useState<StatisticsOverview | null>(null);
 

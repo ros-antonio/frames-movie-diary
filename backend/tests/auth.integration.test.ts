@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { app, resetStore } from './testUtils.js';
+import { store } from '../src/repositories/inMemoryStore.js';
 
 describe('auth API', () => {
   beforeEach(() => {
@@ -77,6 +78,32 @@ describe('auth API', () => {
 
     expect(unknownUser.status).toBe(401);
     expect(unknownUser.body.message).toBe('Invalid email or password');
+  });
+
+  it('rejects login when stored hash is malformed', async () => {
+    const register = await request(app).post('/api/auth/register').send({
+      name: 'Tony',
+      email: 'tony@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+    });
+
+    const userId = register.body.id as string;
+    const user = store.users.get(userId);
+    if (!user) {
+      throw new Error('Expected registered user in store');
+    }
+
+    user.passwordHash = 'abcd';
+    store.users.set(userId, user);
+
+    const response = await request(app).post('/api/auth/login').send({
+      email: 'tony@example.com',
+      password: 'password123',
+    });
+
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe('Invalid email or password');
   });
 
   it('rejects invalid registration payload', async () => {

@@ -57,9 +57,15 @@ function validateRegistrationForm(name: string, email: string, password: string,
   return errors;
 }
 
-export function useRegisterPage() {
+interface UseRegisterPageOptions {
+  forceBackend?: boolean;
+  register?: typeof registerUser;
+}
+
+export function useRegisterPage(options?: UseRegisterPageOptions) {
   const navigate = useNavigate();
-  const useBackend = import.meta.env.MODE !== 'test';
+  const useBackend = options?.forceBackend ?? import.meta.env.MODE !== 'test';
+  const register = options?.register ?? registerUser;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -85,7 +91,7 @@ export function useRegisterPage() {
     }
 
     try {
-      await registerUser({
+      await register({
         name: trimmedName,
         email: trimmedEmail,
         password,

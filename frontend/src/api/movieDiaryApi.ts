@@ -12,6 +12,39 @@ interface PaginatedResponse<T> {
   };
 }
 
+export class ApiHttpError extends Error {
+  public readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = 'ApiHttpError';
+  }
+}
+
+export class ApiNetworkError extends Error {
+  constructor(message = 'Network is unavailable') {
+    super(message);
+    this.name = 'ApiNetworkError';
+  }
+}
+
+export function isOfflineLikeError(error: unknown): boolean {
+  if (error instanceof ApiNetworkError) {
+    return true;
+  }
+
+  if (error instanceof TypeError) {
+    return /fetch|network|failed to fetch/i.test(error.message);
+  }
+
+  if (error instanceof Error) {
+    return /network|offline|failed to fetch|load data from the backend/i.test(error.message);
+  }
+
+  return false;
+}
+
 export interface MovieDiaryApi {
   getAllMovies(): Promise<MovieLog[]>;
   createMovie(movie: MovieInput): Promise<MovieLog>;
@@ -32,13 +65,22 @@ export interface MovieDiaryApi {
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:4000/api';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new ApiNetworkError(error.message);
+    }
+
+    throw new ApiNetworkError();
+  }
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
@@ -52,7 +94,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       // Keep fallback message if response body is not JSON.
     }
 
-    throw new Error(message);
+    throw new ApiHttpError(response.status, message);
   }
 
   if (response.status === 204) {

@@ -158,6 +158,33 @@ describe('LogNewMovie', () => {
     await user.click(screen.getByRole('button', { name: /Save Movie/i }));
 
     expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByText('Please fix the highlighted fields before saving.')).toBeInTheDocument();
+    expect(screen.getByText('Movie link must start with https://, http://, or magnet:')).toBeInTheDocument();
+  });
+
+  it('shows inline message when watch date is in the future', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    const { container } = render(<LogNewMovie onSave={onSave} onCancel={vi.fn()} />);
+
+    const titleInput = container.querySelector('input[type="text"]') as HTMLInputElement;
+    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const futureDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(
+      tomorrow.getDate(),
+    ).padStart(2, '0')}`;
+
+    await user.clear(titleInput);
+    await user.type(titleInput, 'Future Movie');
+    await user.clear(dateInput);
+    await user.type(dateInput, futureDate);
+
+    await user.click(screen.getByRole('button', { name: /Save Movie/i }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByText('Watch date cannot be in the future')).toBeInTheDocument();
   });
 
   it('accepts valid https URL', async () => {

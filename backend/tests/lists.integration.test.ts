@@ -79,6 +79,16 @@ describe('lists API', () => {
     expect(response.body.message).toBe('Movie not found');
   });
 
+  it('returns 404 when removing a movie that is not in the list', async () => {
+    const movie = await createMovie();
+    const list = await createList();
+
+    const response = await request(app).delete(`/api/lists/${list.body.id}/movies/${movie.body.id}`);
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe('Movie not in list');
+  });
+
   it('updates and deletes a list', async () => {
     const list = await createList();
 

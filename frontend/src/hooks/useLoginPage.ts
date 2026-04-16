@@ -31,9 +31,15 @@ function validateLoginForm(email: string, password: string): FormErrors {
   return errors;
 }
 
-export function useLoginPage() {
+interface UseLoginPageOptions {
+  forceBackend?: boolean;
+  login?: typeof loginUser;
+}
+
+export function useLoginPage(options?: UseLoginPageOptions) {
   const navigate = useNavigate();
-  const useBackend = import.meta.env.MODE !== 'test';
+  const useBackend = options?.forceBackend ?? import.meta.env.MODE !== 'test';
+  const login = options?.login ?? loginUser;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
@@ -56,7 +62,7 @@ export function useLoginPage() {
     }
 
     try {
-      await loginUser({
+      await login({
         email: trimmedEmail,
         password,
       });
