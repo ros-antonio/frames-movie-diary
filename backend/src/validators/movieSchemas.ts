@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 const dateOnlyRegex = /^\d{4}-\d{2}-\d{2}$/;
 const timeRegex = /^(?:\d{1,2}:)?[0-5]\d:[0-5]\d$/;
+const pngDataUrlRegex = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/;
+const maxFrameImageUrlLength = 9_000_000;
 
 function isDateNotInFuture(value: string): boolean {
   if (!dateOnlyRegex.test(value)) {
@@ -38,7 +40,9 @@ export const createMovieSchema = z.object({
 export const updateMovieSchema = createMovieSchema;
 
 export const createFrameSchema = z.object({
-  imageUrl: z.string().trim().min(1).max(4_000),
+  imageUrl: z.string().trim().min(1).max(maxFrameImageUrlLength).regex(pngDataUrlRegex, {
+    message: 'imageUrl must be a PNG data URL',
+  }),
   timestamp: z.string().trim().regex(timeRegex, {
     message: 'timestamp must be MM:SS or HH:MM:SS',
   }),

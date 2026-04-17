@@ -86,6 +86,24 @@ describe('MovieDetail', () => {
     expect(screen.getByText('Caption is required')).toBeInTheDocument();
   });
 
+  it('rejects oversized PNG uploads before submitting', async () => {
+    const user = userEvent.setup();
+
+    render(<MovieDetail movie={baseMovie} onBack={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} onAddFrame={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Upload PNG Frame/i }));
+
+    const file = new File([new Uint8Array(6 * 1024 * 1024 + 1)], 'too-large.png', { type: 'image/png' });
+    const fileInput = screen.getByLabelText('PNG Screenshot') as HTMLInputElement;
+    await user.upload(fileInput, file);
+
+    await user.type(screen.getByLabelText('Timestamp (HH:MM or HH:MM:SS)'), '00:12:34');
+    await user.type(screen.getByLabelText('Caption'), 'Frame caption');
+    await user.click(screen.getByRole('button', { name: 'Save Frame' }));
+
+    expect(screen.getByText('PNG image must be 6 MB or smaller')).toBeInTheDocument();
+  });
+
   it('submits uploaded frame details to onAddFrame', async () => {
     const user = userEvent.setup();
     const onAddFrame = vi.fn();

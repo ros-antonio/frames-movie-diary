@@ -86,9 +86,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let message = `Request failed (${response.status})`;
 
     try {
-      const body = (await response.json()) as { message?: string };
+      const body = (await response.json()) as {
+        message?: string;
+        details?: Array<{ message?: string }>;
+      };
       if (body.message) {
         message = body.message;
+      }
+
+      const firstDetail = body.details?.[0]?.message;
+      if (firstDetail && body.message) {
+        message = `${body.message}: ${firstDetail}`;
       }
     } catch {
       // Keep fallback message if response body is not JSON.

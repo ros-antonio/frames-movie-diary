@@ -9,8 +9,8 @@ interface MovieDetailProps {
     onBack: () => void;
     onDelete: (id: string) => void;
     onEdit: () => void;
-    onAddFrame?: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => void;
-    onDeleteFrame?: (movieId: string, frameId: string) => void;
+    onAddFrame?: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => Promise<boolean> | boolean | void;
+    onDeleteFrame?: (movieId: string, frameId: string) => Promise<boolean> | boolean | void;
 }
 
 interface UploadFormData {
@@ -24,6 +24,8 @@ interface UploadErrors {
     timestamp?: string;
     caption?: string;
 }
+
+const maxUploadPngBytes = 6 * 1024 * 1024;
 
 function readFileAsDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -42,6 +44,8 @@ function validateUploadForm(formData: UploadFormData): UploadErrors {
         errors.imageFile = 'PNG image is required';
     } else if (formData.imageFile.type !== 'image/png') {
         errors.imageFile = 'Only .png files are allowed';
+    } else if (formData.imageFile.size > maxUploadPngBytes) {
+        errors.imageFile = 'PNG image must be 6 MB or smaller';
     }
 
     const trimmedTimestamp = formData.timestamp.trim();
@@ -113,12 +117,14 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
         setIsSavingUpload(true);
         try {
             const imageUrl = await readFileAsDataUrl(uploadForm.imageFile);
-            onAddFrame(movie.id, {
+            const saved = await onAddFrame(movie.id, {
                 imageUrl,
                 timestamp: uploadForm.timestamp.trim(),
                 caption: uploadForm.caption.trim(),
             });
-            closeUploadModal();
+            if (saved !== false) {
+                closeUploadModal();
+            }
         } finally {
             setIsSavingUpload(false);
         }

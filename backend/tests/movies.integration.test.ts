@@ -119,6 +119,22 @@ describe('movies API', () => {
     expect(deleted.status).toBe(204);
   });
 
+  it('accepts large PNG data URLs for frame uploads', async () => {
+    const created = await createMovie();
+    const largeDataUrl = `data:image/png;base64,${'A'.repeat(5_000)}`;
+
+    const frame = await request(app)
+      .post(`/api/movies/${created.body.id}/frames`)
+      .send({
+        imageUrl: largeDataUrl,
+        timestamp: '01:23:45',
+        caption: 'Large upload',
+      });
+
+    expect(frame.status).toBe(201);
+    expect(frame.body.imageUrl).toBe(largeDataUrl);
+  });
+
   it('rejects invalid frame payload', async () => {
     const created = await createMovie();
 
