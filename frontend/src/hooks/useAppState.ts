@@ -109,6 +109,7 @@ function reconcileMoviesWithPendingOperations(movieLogs: MovieLog[], operations:
 
 export function useAppState(options?: UseAppStateOptions) {
   const useBackend = options?.forceBackend ?? import.meta.env.MODE !== 'test';
+  const deferInitialMovieBootstrap = useBackend && options?.forceBackend !== true;
   const [movieLogs, setMovieLogs] = useState<MovieLog[]>(() => {
     if (!useBackend) {
       return [];
@@ -399,31 +400,40 @@ export function useAppState(options?: UseAppStateOptions) {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    Promise.all([movieDiaryApi.getAllMovies(), movieDiaryApi.getAllLists()])
-      .then(([movies, lists]) => {
-        setMovieLogs(reconcileMoviesWithPendingOperations(movies, queuedOperationsAtMount));
-        setCustomLists(lists);
+    const loadInitialData = async () => {
+      try {
+        if (deferInitialMovieBootstrap) {
+          const lists = await movieDiaryApi.getAllLists();
+          setCustomLists(lists);
+        } else {
+          const [movies, lists] = await Promise.all([movieDiaryApi.getAllMovies(), movieDiaryApi.getAllLists()]);
+          setMovieLogs(reconcileMoviesWithPendingOperations(movies, queuedOperationsAtMount));
+          setCustomLists(lists);
+        }
+
         setIsOffline(!navigator.onLine);
         clearOperationError();
 
         if (queuedOperationsAtMount.length > 0) {
           void replayPendingOperations(queuedOperationsAtMount);
         }
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         if (isOfflineLikeError(error)) {
           setIsOffline(true);
           return;
         }
 
         setErrorFromUnknown(error, 'Could not load data from the backend.');
-      });
+      }
+    };
+
+    void loadInitialData();
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [replayPendingOperations, useBackend]);
+  }, [deferInitialMovieBootstrap, replayPendingOperations, useBackend]);
 
   useEffect(() => {
     if (!useBackend) {

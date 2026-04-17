@@ -46,6 +46,7 @@ export function isOfflineLikeError(error: unknown): boolean {
 }
 
 export interface MovieDiaryApi {
+  getMoviesPage(page: number, pageSize?: number): Promise<PaginatedResponse<MovieLog>>;
   getAllMovies(): Promise<MovieLog[]>;
   createMovie(movie: MovieInput): Promise<MovieLog>;
   updateMovie(movieId: string, movie: MovieInput): Promise<MovieLog>;
@@ -144,6 +145,10 @@ export function loginUser(input: { email: string; password: string }) {
 }
 
 export const movieDiaryApi: MovieDiaryApi = {
+  getMoviesPage(page: number, pageSize = 12) {
+    return request<PaginatedResponse<MovieLog>>(`/movies?page=${page}&pageSize=${pageSize}`);
+  },
+
   getAllMovies() {
     return getAllPages<MovieLog>('/movies');
   },

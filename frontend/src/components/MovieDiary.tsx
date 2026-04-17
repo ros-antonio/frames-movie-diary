@@ -1,4 +1,5 @@
-import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown } from 'lucide-react';
+import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown, ArrowUp } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { MovieLog } from '../types';
 import { useMovieDiaryPage } from '../hooks/useMovieDiaryPage';
 
@@ -10,18 +11,57 @@ interface MovieDiaryProps {
 
 export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryProps) {
     const {
-        currentPage,
-        setCurrentPage,
         viewMode,
-        totalPages,
         currentMovies,
+        hasMore,
+        loadMore,
+        totalMovies,
         handleViewModeChange,
         handleSortChange,
         getSortDirection,
         goToStatistics,
         goToCustomLists,
     } = useMovieDiaryPage(movieLogs);
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+    const [showJumpToTop, setShowJumpToTop] = useState(false);
 
+    useEffect(() => {
+        if (!hasMore || !sentinelRef.current || typeof IntersectionObserver === 'undefined') {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting) {
+                    loadMore();
+                }
+            },
+            {
+                root: null,
+                rootMargin: '480px 0px',
+                threshold: 0.1,
+            },
+        );
+
+        observer.observe(sentinelRef.current);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [hasMore, loadMore, totalMovies]);
+
+    useEffect(() => {
+        const onScroll = () => {
+            setShowJumpToTop(window.scrollY > 550);
+        };
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+        };
+    }, []);
 
     const renderSortIcon = (field: 'movieName' | 'watchDate') => {
         const direction = getSortDirection(field);
@@ -113,7 +153,7 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                                     <td className="p-4">{new Date(movie.watchDate).toLocaleDateString()}</td>
                                 </tr>
                             ))}
-                            {movieLogs.length === 0 && (
+                            {totalMovies === 0 && (
                                 <tr>
                                     <td colSpan={2} className="p-8 text-center opacity-50 italic">No movies logged yet. Click "Log New Movie" to start!</td>
                                 </tr>
@@ -144,18 +184,35 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                     </div>
                 )}
 
-                {totalPages > 1 && (
-                    <div className="flex justify-center gap-2 pt-4">
-                        {Array.from({ length: totalPages }, (_, i) => (
-                            <button
-                                key={i + 1}
-                                onClick={() => setCurrentPage(i + 1)}
-                                className={`w-10 h-10 rounded-md transition-colors btn-press ${currentPage === i + 1 ? 'bg-[#E0BAAA] text-[#261834]' : 'bg-[#223662] text-[#B9A5D2]'}`}
-                            >
-                                {i + 1}
-                            </button>
-                        ))}
+                {(totalMovies > 0 || hasMore) && (
+                    <div className="pt-4 space-y-3">
+                        {hasMore ? (
+                            <div className="flex justify-center">
+                                <button
+                                    type="button"
+                                    onClick={loadMore}
+                                    className="px-4 py-2 rounded-md border border-[#B9A5D2]/50 hover:bg-[#B9A5D2]/10"
+                                >
+                                    Load more movies
+                                </button>
+                            </div>
+                        ) : (
+                            totalMovies > 0 && <p className="text-center text-xs opacity-80">You reached the end.</p>
+                        )}
                     </div>
+                )}
+
+                <div ref={sentinelRef} className="h-2" aria-hidden="true" />
+
+                {showJumpToTop && (
+                    <button
+                        type="button"
+                        aria-label="Jump to top"
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="fixed bottom-6 right-6 z-40 rounded-full p-3 bg-[#E0BAAA] text-[#261834] shadow-lg hover:opacity-90"
+                    >
+                        <ArrowUp className="w-5 h-5" />
+                    </button>
                 )}
             </div>
         </div>

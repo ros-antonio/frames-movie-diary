@@ -2,6 +2,14 @@ import { ArrowLeft, Film, Calendar, Star, MessageSquare, Link as LinkIcon } from
 import type { MovieInput, MovieLog } from '../types';
 import { useMovieForm } from '../hooks/useMovieForm';
 
+function getTodayDateInputValue(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 interface LogNewMovieProps {
     onSave: (movie: MovieInput) => void;
     onCancel: () => void;
@@ -11,6 +19,7 @@ interface LogNewMovieProps {
 export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps) {
     const { formData, setFormData, handleSubmit, errors } = useMovieForm(onSave, initialData);
     const hasErrors = Object.keys(errors).length > 0;
+    const todayDateMax = getTodayDateInputValue();
 
     return (
         <div className="min-h-screen p-8 bg-[#261834]">
@@ -56,6 +65,7 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
                                 <input
                                     type="date"
                                     required
+                                    max={todayDateMax}
                                     value={formData.watchDate}
                                     onChange={(e) => setFormData({ ...formData, watchDate: e.target.value })}
                                     className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none [scheme:dark] input-smooth"

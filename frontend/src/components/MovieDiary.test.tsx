@@ -106,10 +106,10 @@ describe('MovieDiary', () => {
     expect(screen.getByRole('button', { name: /Movie Name/i })).toBeInTheDocument();
   });
 
-  it('shows pagination buttons when there are more than 6 movies', async () => {
+  it('loads additional movies when clicking "Load more movies"', async () => {
     const user = userEvent.setup();
-    const movieLogs = Array.from({ length: 7 }, (_, idx) =>
-      movie(String(idx + 1), `Movie ${idx + 1}`, `2026-01-${String(idx + 1).padStart(2, '0')}`),
+    const movieLogs = Array.from({ length: 13 }, (_, idx) =>
+      movie(String(idx + 1), `Movie ${idx + 1}`, `2026-01-${String((idx % 28) + 1).padStart(2, '0')}`),
     );
 
     render(
@@ -118,11 +118,10 @@ describe('MovieDiary', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
+    expect(screen.queryByText('Movie 13')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '2' }));
+    await user.click(screen.getByRole('button', { name: /Load more movies/i }));
 
-    expect(screen.getByText('Movie 7')).toBeInTheDocument();
+    expect(screen.getByText('Movie 13')).toBeInTheDocument();
   });
 });
-

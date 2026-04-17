@@ -184,7 +184,6 @@ describe('LogNewMovie', () => {
     await user.click(screen.getByRole('button', { name: /Save Movie/i }));
 
     expect(onSave).not.toHaveBeenCalled();
-    expect(screen.getByText('Watch date cannot be in the future')).toBeInTheDocument();
   });
 
   it('accepts valid https URL', async () => {
@@ -411,7 +410,32 @@ describe('LogNewMovie', () => {
     // Form submits with short review, which is fine
     expect(onSave).toHaveBeenCalled();
   });
+
+  it('prevents selecting a future watch date via date input max', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    const { container } = render(<LogNewMovie onSave={onSave} onCancel={vi.fn()} />);
+
+    const titleInput = container.querySelector('input[type="text"]') as HTMLInputElement;
+    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const futureDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(
+      tomorrow.getDate(),
+    ).padStart(2, '0')}`;
+    const today = new Date();
+    const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    expect(dateInput.max).toBe(todayDate);
+
+    await user.clear(titleInput);
+    await user.type(titleInput, 'Future Movie');
+    await user.clear(dateInput);
+    await user.type(dateInput, futureDate);
+
+    await user.click(screen.getByRole('button', { name: /Save Movie/i }));
+
+    expect(onSave).not.toHaveBeenCalled();
+  });
 });
-
-
-

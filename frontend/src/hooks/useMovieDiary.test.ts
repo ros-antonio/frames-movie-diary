@@ -24,28 +24,23 @@ describe('useMovieDiary', () => {
     expect(result.current.currentMovies.map((m) => m.movieName)).toEqual(['Zodiac', 'Blade Runner', 'Arrival']);
   });
 
-  it('clamps page when list shrinks', () => {
-    const longList = [
-      buildMovie('1', 'A', '2026-01-01'),
-      buildMovie('2', 'B', '2026-01-02'),
-      buildMovie('3', 'C', '2026-01-03'),
-      buildMovie('4', 'D', '2026-01-04'),
-      buildMovie('5', 'E', '2026-01-05'),
-    ];
-    const shortList = [buildMovie('1', 'A', '2026-01-01')];
+  it('loads more items in batches and clamps at total length', () => {
+    const movieLogs = Array.from({ length: 7 }, (_, index) =>
+      buildMovie(String(index + 1), `Movie ${index + 1}`, `2026-01-${String(index + 1).padStart(2, '0')}`),
+    );
 
-    const { result, rerender } = renderHook(({ logs }) => useMovieDiary(logs, 2), {
-      initialProps: { logs: longList },
-    });
+    const { result } = renderHook(() => useMovieDiary(movieLogs, 3));
 
-    act(() => result.current.setCurrentPage(3));
-    expect(result.current.currentPage).toBe(3);
+    expect(result.current.currentMovies).toHaveLength(3);
+    expect(result.current.hasMore).toBe(true);
 
-    rerender({ logs: shortList });
+    act(() => result.current.loadMore());
+    expect(result.current.currentMovies).toHaveLength(6);
+    expect(result.current.hasMore).toBe(true);
 
-    expect(result.current.totalPages).toBe(1);
-    expect(result.current.currentPage).toBe(1);
-    expect(result.current.currentMovies).toHaveLength(1);
+    act(() => result.current.loadMore());
+    expect(result.current.currentMovies).toHaveLength(7);
+    expect(result.current.hasMore).toBe(false);
   });
 
   it('keeps stable order when compared values are equal', () => {

@@ -5,18 +5,30 @@ const timeRegex = /^(?:\d{1,2}:)?[0-5]\d:[0-5]\d$/;
 const pngDataUrlRegex = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/;
 const maxFrameImageUrlLength = 9_000_000;
 
+function toLocalDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function isDateNotInFuture(value: string): boolean {
   if (!dateOnlyRegex.test(value)) {
     return false;
   }
 
-  const parsed = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(parsed.getTime())) {
+  const [year, month, day] = value.split('-').map((part) => Number(part));
+  const parsed = new Date(year, month - 1, day);
+  if (
+    Number.isNaN(parsed.getTime())
+    || parsed.getFullYear() !== year
+    || parsed.getMonth() !== month - 1
+    || parsed.getDate() !== day
+  ) {
     return false;
   }
 
-  const todayIso = new Date().toISOString().slice(0, 10);
-  return value <= todayIso;
+  return value <= toLocalDateInputValue(new Date());
 }
 
 const movieLinkSchema = z
