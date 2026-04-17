@@ -25,6 +25,7 @@ vi.mock('./hooks/useAppState', () => ({
     operationError: null,
     clearOperationError: vi.fn(),
     syncPendingOperations: syncPendingOperationsMock,
+    refreshFromServer: vi.fn(),
     handleAddMovie: vi.fn(),
     handleUpdateMovie: vi.fn(),
     handleDeleteMovie: vi.fn(),

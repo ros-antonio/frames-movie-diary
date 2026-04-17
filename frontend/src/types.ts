@@ -74,3 +74,19 @@ export interface StatisticsOverview {
     ratingDistribution: Record<string, number>;
 }
 
+export interface GeneratorStatus {
+    running: boolean;
+    batchSize: number;
+    intervalMs: number;
+}
+
+export interface GeneratorStartResponse {
+    started: boolean;
+    status: GeneratorStatus;
+}
+
+export interface GeneratorStopResponse {
+    stopped: boolean;
+    status: GeneratorStatus;
+}
+

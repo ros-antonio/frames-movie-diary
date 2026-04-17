@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { MovieInput, MovieLog, SavedFrame } from './types';
 import { LandingPage } from './components/LandingPage';
 import { MovieDiary } from './components/MovieDiary';
@@ -11,6 +11,7 @@ import { Statistics } from './components/Statistics';
 import { CustomLists } from './components/CustomLists';
 import { useAppState } from './hooks/useAppState';
 import { useUserActivity } from './hooks/useUserActivity';
+import { useRealtimeSync } from './hooks/useRealtimeSync';
 
 function DiaryRoute({ movieLogs, onAddClick, onSelectMovie }: {
   movieLogs: MovieLog[];
@@ -111,6 +112,7 @@ export default function App() {
     operationError,
     clearOperationError,
     syncPendingOperations,
+    refreshFromServer,
     handleAddMovie,
     handleUpdateMovie,
     handleDeleteMovie,
@@ -122,6 +124,14 @@ export default function App() {
     handleDeleteFrameFromMovie,
   } = useAppState();
   const [isSyncing, setIsSyncing] = useState(false);
+  const handleServerDataChanged = useCallback(() => {
+    void refreshFromServer();
+  }, [refreshFromServer]);
+
+  useRealtimeSync({
+    enabled: !isOffline,
+    onServerDataChanged: handleServerDataChanged,
+  });
 
   const handleSyncClick = async () => {
     setIsSyncing(true);

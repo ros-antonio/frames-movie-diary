@@ -3,6 +3,7 @@ import { movieRoutes } from './movieRoutes.js';
 import { listRoutes } from './listRoutes.js';
 import { statisticsRoutes } from './statisticsRoutes.js';
 import { authRoutes } from './authRoutes.js';
+import { generatorRoutes } from './generatorRoutes.js';
 
 const apiRoutes = Router();
 
@@ -14,6 +15,7 @@ apiRoutes.use('/movies', movieRoutes);
 apiRoutes.use('/lists', listRoutes);
 apiRoutes.use('/statistics', statisticsRoutes);
 apiRoutes.use('/auth', authRoutes);
+apiRoutes.use('/generator', generatorRoutes);
 
 export { apiRoutes };
 

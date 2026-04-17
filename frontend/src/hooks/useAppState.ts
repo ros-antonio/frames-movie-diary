@@ -260,7 +260,7 @@ export function useAppState(options?: UseAppStateOptions) {
         return inFlightSyncRef.current;
       }
 
-      const replayPromise = (async (): Promise<boolean> => {
+      const replayPromise: Promise<boolean> = (async () => {
       if (!useBackend || operationsToReplay.length === 0) {
         return true;
       }
@@ -378,6 +378,33 @@ export function useAppState(options?: UseAppStateOptions) {
     return replayPendingOperations(pendingOperations);
   }, [pendingOperations, replayPendingOperations]);
 
+  const refreshFromServer = useCallback(async (): Promise<boolean> => {
+    if (!useBackend) {
+      return true;
+    }
+
+    if (!navigator.onLine || pendingOperations.length > 0) {
+      return false;
+    }
+
+    try {
+      const [movies, lists] = await Promise.all([movieDiaryApi.getAllMovies(), movieDiaryApi.getAllLists()]);
+      setMovieLogs(reconcileMoviesWithPendingOperations(movies, pendingOperations));
+      setCustomLists(lists);
+      setIsOffline(false);
+      clearOperationError();
+      return true;
+    } catch (error: unknown) {
+      if (isOfflineLikeError(error)) {
+        setIsOffline(true);
+        return false;
+      }
+
+      setErrorFromUnknown(error, 'Could not refresh data from server.');
+      return false;
+    }
+  }, [pendingOperations, useBackend]);
+
   useEffect(() => {
     if (!useBackend) {
       return;
@@ -447,7 +474,9 @@ export function useAppState(options?: UseAppStateOptions) {
       return;
     }
 
+    /* eslint-disable react-hooks/set-state-in-effect */
     setMovieLogs((prev) => reconcileMoviesWithPendingOperations(prev, pendingOperations));
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [pendingOperations, useBackend]);
 
   const shouldQueueOperation = (error?: unknown) => {
@@ -746,6 +775,7 @@ export function useAppState(options?: UseAppStateOptions) {
     operationError,
     clearOperationError,
     syncPendingOperations,
+    refreshFromServer,
     handleAddMovie,
     handleUpdateMovie,
     handleDeleteMovie,

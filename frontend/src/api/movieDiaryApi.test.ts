@@ -249,5 +249,38 @@ describe('movieDiaryApi error handling', () => {
     expect(lists).toHaveLength(1);
     expect(String(fetchMock.mock.calls[0][0])).toContain('/lists?page=1&pageSize=100');
   });
+
+  it('calls generator status, start, and stop endpoints', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ running: false, batchSize: 3, intervalMs: 3000 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ started: true, status: { running: true, batchSize: 3, intervalMs: 3000 } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ stopped: true, status: { running: false, batchSize: 3, intervalMs: 3000 } }),
+      });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await movieDiaryApi.getGeneratorStatus();
+    await movieDiaryApi.startGenerator();
+    await movieDiaryApi.stopGenerator();
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/generator/status');
+    expect(fetchMock.mock.calls[1][1]?.method).toBe('POST');
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/generator/start');
+    expect(fetchMock.mock.calls[2][1]?.method).toBe('POST');
+    expect(String(fetchMock.mock.calls[2][0])).toContain('/generator/stop');
+  });
 });
 

@@ -1,4 +1,14 @@
-import type { AuthUser, CustomList, MovieInput, MovieLog, SavedFrame, StatisticsOverview } from '../types';
+import type {
+  AuthUser,
+  CustomList,
+  GeneratorStartResponse,
+  GeneratorStatus,
+  GeneratorStopResponse,
+  MovieInput,
+  MovieLog,
+  SavedFrame,
+  StatisticsOverview,
+} from '../types';
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -60,6 +70,9 @@ export interface MovieDiaryApi {
   register(input: { name: string; email: string; password: string; confirmPassword: string }): Promise<AuthUser>;
   login(input: { email: string; password: string }): Promise<AuthUser>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
+  getGeneratorStatus(): Promise<GeneratorStatus>;
+  startGenerator(input?: { batchSize?: number; intervalMs?: number }): Promise<GeneratorStartResponse>;
+  stopGenerator(): Promise<GeneratorStopResponse>;
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:4000/api';
@@ -220,6 +233,23 @@ export const movieDiaryApi: MovieDiaryApi = {
 
   getStatisticsOverview() {
     return request<StatisticsOverview>('/statistics/overview');
+  },
+
+  getGeneratorStatus() {
+    return request<GeneratorStatus>('/generator/status');
+  },
+
+  startGenerator(input?: { batchSize?: number; intervalMs?: number }) {
+    return request<GeneratorStartResponse>('/generator/start', {
+      method: 'POST',
+      body: JSON.stringify(input ?? {}),
+    });
+  },
+
+  stopGenerator() {
+    return request<GeneratorStopResponse>('/generator/stop', {
+      method: 'POST',
+    });
   },
 };
 

@@ -1,6 +1,9 @@
 import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { MovieLog } from '../types';
 import { useMovieDiaryPage } from '../hooks/useMovieDiaryPage';
+import type { GeneratorStatus } from '../types';
+import { movieDiaryApi } from '../api/movieDiaryApi';
 
 interface MovieDiaryProps {
     movieLogs: MovieLog[];
@@ -21,6 +24,70 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
         goToStatistics,
         goToCustomLists,
     } = useMovieDiaryPage(movieLogs);
+    const [generatorStatus, setGeneratorStatus] = useState<GeneratorStatus>({
+        running: false,
+        batchSize: 3,
+        intervalMs: 3000,
+    });
+    const [isGeneratorBusy, setIsGeneratorBusy] = useState(false);
+    const [generatorError, setGeneratorError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadStatus = async () => {
+            try {
+                const status = await movieDiaryApi.getGeneratorStatus();
+                if (isMounted) {
+                    setGeneratorStatus(status);
+                }
+            } catch {
+                if (isMounted) {
+                    setGeneratorError('Could not load generator status.');
+                }
+            }
+        };
+
+        void loadStatus();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const handleStartGenerator = async () => {
+        setIsGeneratorBusy(true);
+        setGeneratorError(null);
+        try {
+            const result = await movieDiaryApi.startGenerator();
+            setGeneratorStatus(result.status);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                setGeneratorError(error.message);
+            } else {
+                setGeneratorError('Could not start generator.');
+            }
+        } finally {
+            setIsGeneratorBusy(false);
+        }
+    };
+
+    const handleStopGenerator = async () => {
+        setIsGeneratorBusy(true);
+        setGeneratorError(null);
+        try {
+            const result = await movieDiaryApi.stopGenerator();
+            setGeneratorStatus(result.status);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                setGeneratorError(error.message);
+            } else {
+                setGeneratorError('Could not stop generator.');
+            }
+        } finally {
+            setIsGeneratorBusy(false);
+        }
+    };
 
 
     const renderSortIcon = (field: 'movieName' | 'watchDate') => {
@@ -57,6 +124,37 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                         >
                             <Plus className="w-4 h-4 mr-2" /> Log New Movie
                         </button>
+                    </div>
+                </div>
+
+                <div className="rounded-lg p-4 bg-[#223662] border border-[#B9A5D2]/20">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <p className="text-sm" style={{ color: '#E0BAAA' }}>Auto Movie Generator</p>
+                            <p className="text-xs opacity-80" style={{ color: '#B9A5D2' }}>
+                                Status: {generatorStatus.running ? 'Running' : 'Stopped'}
+                                {generatorStatus.running ? ` (${generatorStatus.batchSize} every ${Math.round(generatorStatus.intervalMs / 1000)}s)` : ''}
+                            </p>
+                            {generatorError && <p className="text-xs text-red-300 mt-1">{generatorError}</p>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => void handleStartGenerator()}
+                                disabled={isGeneratorBusy || generatorStatus.running}
+                                className="px-3 py-1.5 rounded-md border border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 disabled:opacity-60"
+                            >
+                                Start Faker Loop
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void handleStopGenerator()}
+                                disabled={isGeneratorBusy || !generatorStatus.running}
+                                className="px-3 py-1.5 rounded-md border border-[#B9A5D2] text-[#B9A5D2] hover:bg-[#B9A5D2]/10 disabled:opacity-60"
+                            >
+                                Stop Faker Loop
+                            </button>
+                        </div>
                     </div>
                 </div>
 
