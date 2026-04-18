@@ -12,6 +12,19 @@ interface PaginatedResponse<T> {
   };
 }
 
+interface GraphQLErrorPayload {
+  message?: string;
+  extensions?: {
+    statusCode?: number;
+    details?: Array<{ message?: string }>;
+  };
+}
+
+interface GraphQLResponse<T> {
+  data?: T;
+  errors?: GraphQLErrorPayload[];
+}
+
 export class ApiHttpError extends Error {
   public readonly status: number;
 
@@ -63,17 +76,34 @@ export interface MovieDiaryApi {
   getStatisticsOverview(): Promise<StatisticsOverview>;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:4000/api';
+function resolveGraphQLEndpoint(baseUrl?: string): string {
+  if (!baseUrl) {
+    return 'http://localhost:4000/api/graphql';
+  }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const trimmed = baseUrl.replace(/\/+$/, '');
+  if (trimmed.endsWith('/graphql')) {
+    return trimmed;
+  }
+
+  if (trimmed.endsWith('/api')) {
+    return `${trimmed}/graphql`;
+  }
+
+  return `${trimmed}/api/graphql`;
+}
+
+const API_BASE_URL = resolveGraphQLEndpoint(import.meta.env.VITE_API_BASE_URL as string | undefined);
+
+async function requestGraphQL<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(API_BASE_URL, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(init?.headers ?? {}),
       },
-      ...init,
+      body: JSON.stringify({ query, variables }),
     });
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -87,17 +117,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let message = `Request failed (${response.status})`;
 
     try {
-      const body = (await response.json()) as {
-        message?: string;
-        details?: Array<{ message?: string }>;
-      };
-      if (body.message) {
-        message = body.message;
+      const body = (await response.json()) as GraphQLResponse<Record<string, unknown>>;
+      const firstError = body.errors?.[0];
+      if (firstError?.message) {
+        message = firstError.message;
       }
 
-      const firstDetail = body.details?.[0]?.message;
-      if (firstDetail && body.message) {
-        message = `${body.message}: ${firstDetail}`;
+      const firstDetail = firstError?.extensions?.details?.[0]?.message;
+      if (firstDetail && firstError?.message) {
+        message = `${firstError.message}: ${firstDetail}`;
       }
     } catch {
       // Keep fallback message if response body is not JSON.
@@ -106,20 +134,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiHttpError(response.status, message);
   }
 
-  if (response.status === 204) {
-    return undefined as T;
+  const body = (await response.json()) as GraphQLResponse<T>;
+  const firstError = body.errors?.[0];
+  if (firstError) {
+    let message = firstError.message ?? 'GraphQL request failed';
+    const firstDetail = firstError.extensions?.details?.[0]?.message;
+    if (firstDetail && firstError.message) {
+      message = `${firstError.message}: ${firstDetail}`;
+    }
+
+    throw new ApiHttpError(firstError.extensions?.statusCode ?? 500, message);
   }
 
-  return (await response.json()) as T;
+  if (body.data === undefined) {
+    throw new ApiHttpError(500, 'Invalid GraphQL response payload');
+  }
+
+  return body.data;
 }
 
-async function getAllPages<T>(path: string): Promise<T[]> {
+async function getAllPages<T>(fetchPage: (page: number, pageSize: number) => Promise<PaginatedResponse<T>>): Promise<T[]> {
   const pageSize = 100;
   let page = 1;
   const aggregated: T[] = [];
 
   while (true) {
-    const payload = await request<PaginatedResponse<T>>(`${path}?page=${page}&pageSize=${pageSize}`);
+    const payload = await fetchPage(page, pageSize);
     aggregated.push(...payload.data);
 
     if (!payload.pagination.hasNextPage) {
@@ -131,88 +171,240 @@ async function getAllPages<T>(path: string): Promise<T[]> {
 }
 
 export function registerUser(input: { name: string; email: string; password: string; confirmPassword: string }) {
-  return request<AuthUser>('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
+  return requestGraphQL<{ register: AuthUser }>(
+    `mutation Register($input: RegisterInput!) {
+      register(input: $input) {
+        id
+        name
+        email
+      }
+    }`,
+    { input },
+  ).then((result) => result.register);
+}
+
+function mapStatisticsOverview(raw: {
+  totalMovies: number;
+  ratedMovies: number;
+  unratedMovies: number;
+  averageRating: number | null;
+  totalFrames: number;
+  moviesWithFrames: number;
+  topRatedMovies: Array<{ id: string; movieName: string; rating?: number }>;
+  ratingDistribution: {
+    value0_5: number;
+    value1: number;
+    value1_5: number;
+    value2: number;
+    value2_5: number;
+    value3: number;
+    value3_5: number;
+    value4: number;
+    value4_5: number;
+    value5: number;
+  };
+}): StatisticsOverview {
+  return {
+    totalMovies: raw.totalMovies,
+    ratedMovies: raw.ratedMovies,
+    unratedMovies: raw.unratedMovies,
+    averageRating: raw.averageRating,
+    totalFrames: raw.totalFrames,
+    moviesWithFrames: raw.moviesWithFrames,
+    topRatedMovies: raw.topRatedMovies,
+    ratingDistribution: {
+      '0.5': raw.ratingDistribution.value0_5,
+      '1': raw.ratingDistribution.value1,
+      '1.5': raw.ratingDistribution.value1_5,
+      '2': raw.ratingDistribution.value2,
+      '2.5': raw.ratingDistribution.value2_5,
+      '3': raw.ratingDistribution.value3,
+      '3.5': raw.ratingDistribution.value3_5,
+      '4': raw.ratingDistribution.value4,
+      '4.5': raw.ratingDistribution.value4_5,
+      '5': raw.ratingDistribution.value5,
+    },
+  };
 }
 
 export function loginUser(input: { email: string; password: string }) {
-  return request<AuthUser>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
+  return requestGraphQL<{ login: AuthUser }>(
+    `mutation Login($input: LoginInput!) {
+      login(input: $input) {
+        id
+        name
+        email
+      }
+    }`,
+    { input },
+  ).then((result) => result.login);
 }
+
+const movieSelectionSet = `
+  id
+  movieName
+  watchDate
+  rating
+  review
+  movieLink
+  frames {
+    id
+    imageUrl
+    timestamp
+    caption
+  }
+`;
+
+const listSelectionSet = `
+  id
+  name
+  description
+  movieIds
+`;
 
 export const movieDiaryApi: MovieDiaryApi = {
   getMoviesPage(page: number, pageSize = 12) {
-    return request<PaginatedResponse<MovieLog>>(`/movies?page=${page}&pageSize=${pageSize}`);
+    return requestGraphQL<{ movies: PaginatedResponse<MovieLog> }>(
+      `query Movies($page: Int!, $pageSize: Int!) {
+        movies(page: $page, pageSize: $pageSize) {
+          data {
+            ${movieSelectionSet}
+          }
+          pagination {
+            page
+            pageSize
+            totalItems
+            totalPages
+            hasNextPage
+            hasPreviousPage
+          }
+        }
+      }`,
+      { page, pageSize },
+    ).then((result) => result.movies);
   },
 
   getAllMovies() {
-    return getAllPages<MovieLog>('/movies');
+    return getAllPages<MovieLog>((page, pageSize) => this.getMoviesPage(page, pageSize));
   },
 
   createMovie(movie: MovieInput) {
-    return request<MovieLog>('/movies', {
-      method: 'POST',
-      body: JSON.stringify(movie),
-    });
+    return requestGraphQL<{ createMovie: MovieLog }>(
+      `mutation CreateMovie($input: MovieInput!) {
+        createMovie(input: $input) {
+          ${movieSelectionSet}
+        }
+      }`,
+      { input: movie },
+    ).then((result) => result.createMovie);
   },
 
   updateMovie(movieId: string, movie: MovieInput) {
-    return request<MovieLog>(`/movies/${movieId}`, {
-      method: 'PUT',
-      body: JSON.stringify(movie),
-    });
+    return requestGraphQL<{ updateMovie: MovieLog }>(
+      `mutation UpdateMovie($movieId: ID!, $input: MovieInput!) {
+        updateMovie(movieId: $movieId, input: $input) {
+          ${movieSelectionSet}
+        }
+      }`,
+      { movieId, input: movie },
+    ).then((result) => result.updateMovie);
   },
 
   deleteMovie(movieId: string) {
-    return request<void>(`/movies/${movieId}`, {
-      method: 'DELETE',
-    });
+    return requestGraphQL<{ deleteMovie: boolean }>(
+      `mutation DeleteMovie($movieId: ID!) {
+        deleteMovie(movieId: $movieId)
+      }`,
+      { movieId },
+    ).then(() => undefined);
   },
 
   addFrame(movieId: string, frame: Omit<SavedFrame, 'id'>) {
-    return request<SavedFrame>(`/movies/${movieId}/frames`, {
-      method: 'POST',
-      body: JSON.stringify(frame),
-    });
+    return requestGraphQL<{ addFrame: SavedFrame }>(
+      `mutation AddFrame($movieId: ID!, $input: FrameInput!) {
+        addFrame(movieId: $movieId, input: $input) {
+          id
+          imageUrl
+          timestamp
+          caption
+        }
+      }`,
+      { movieId, input: frame },
+    ).then((result) => result.addFrame);
   },
 
   deleteFrame(movieId: string, frameId: string) {
-    return request<void>(`/movies/${movieId}/frames/${frameId}`, {
-      method: 'DELETE',
-    });
+    return requestGraphQL<{ deleteFrame: boolean }>(
+      `mutation DeleteFrame($movieId: ID!, $frameId: ID!) {
+        deleteFrame(movieId: $movieId, frameId: $frameId)
+      }`,
+      { movieId, frameId },
+    ).then(() => undefined);
   },
 
   getAllLists() {
-    return getAllPages<CustomList>('/lists');
+    return getAllPages<CustomList>((page, pageSize) =>
+      requestGraphQL<{ lists: PaginatedResponse<CustomList> }>(
+        `query Lists($page: Int!, $pageSize: Int!) {
+          lists(page: $page, pageSize: $pageSize) {
+            data {
+              ${listSelectionSet}
+            }
+            pagination {
+              page
+              pageSize
+              totalItems
+              totalPages
+              hasNextPage
+              hasPreviousPage
+            }
+          }
+        }`,
+        { page, pageSize },
+      ).then((result) => result.lists),
+    );
   },
 
   createList(name: string, description: string) {
-    return request<CustomList>('/lists', {
-      method: 'POST',
-      body: JSON.stringify({ name, description }),
-    });
+    return requestGraphQL<{ createList: CustomList }>(
+      `mutation CreateList($input: ListInput!) {
+        createList(input: $input) {
+          ${listSelectionSet}
+        }
+      }`,
+      { input: { name, description } },
+    ).then((result) => result.createList);
   },
 
   deleteList(listId: string) {
-    return request<void>(`/lists/${listId}`, {
-      method: 'DELETE',
-    });
+    return requestGraphQL<{ deleteList: boolean }>(
+      `mutation DeleteList($listId: ID!) {
+        deleteList(listId: $listId)
+      }`,
+      { listId },
+    ).then(() => undefined);
   },
 
   addMovieToList(listId: string, movieId: string) {
-    return request<CustomList>(`/lists/${listId}/movies/${movieId}`, {
-      method: 'POST',
-    });
+    return requestGraphQL<{ addMovieToList: CustomList }>(
+      `mutation AddMovieToList($listId: ID!, $movieId: ID!) {
+        addMovieToList(listId: $listId, movieId: $movieId) {
+          ${listSelectionSet}
+        }
+      }`,
+      { listId, movieId },
+    ).then((result) => result.addMovieToList);
   },
 
   removeMovieFromList(listId: string, movieId: string) {
-    return request<CustomList>(`/lists/${listId}/movies/${movieId}`, {
-      method: 'DELETE',
-    });
+    return requestGraphQL<{ removeMovieFromList: CustomList }>(
+      `mutation RemoveMovieFromList($listId: ID!, $movieId: ID!) {
+        removeMovieFromList(listId: $listId, movieId: $movieId) {
+          ${listSelectionSet}
+        }
+      }`,
+      { listId, movieId },
+    ).then((result) => result.removeMovieFromList);
   },
 
   register(input: { name: string; email: string; password: string; confirmPassword: string }) {
@@ -224,7 +416,57 @@ export const movieDiaryApi: MovieDiaryApi = {
   },
 
   getStatisticsOverview() {
-    return request<StatisticsOverview>('/statistics/overview');
+    return requestGraphQL<{
+      statisticsOverview: {
+        totalMovies: number;
+        ratedMovies: number;
+        unratedMovies: number;
+        averageRating: number | null;
+        totalFrames: number;
+        moviesWithFrames: number;
+        topRatedMovies: Array<{ id: string; movieName: string; rating?: number }>;
+        ratingDistribution: {
+          value0_5: number;
+          value1: number;
+          value1_5: number;
+          value2: number;
+          value2_5: number;
+          value3: number;
+          value3_5: number;
+          value4: number;
+          value4_5: number;
+          value5: number;
+        };
+      };
+    }>(
+      `query StatisticsOverview {
+        statisticsOverview {
+          totalMovies
+          ratedMovies
+          unratedMovies
+          averageRating
+          totalFrames
+          moviesWithFrames
+          topRatedMovies {
+            id
+            movieName
+            rating
+          }
+          ratingDistribution {
+            value0_5
+            value1
+            value1_5
+            value2
+            value2_5
+            value3
+            value3_5
+            value4
+            value4_5
+            value5
+          }
+        }
+      }`,
+    ).then((result) => mapStatisticsOverview(result.statisticsOverview));
   },
 };
 
