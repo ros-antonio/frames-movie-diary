@@ -2,10 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { MovieLog } from '../types';
 import { isOfflineLikeError, movieDiaryApi } from '../api/movieDiaryApi';
+import type { MovieDiaryApi } from '../api/movieDiaryApi';
 import { useMovieDiary } from './useMovieDiary';
 import { useUserActivity } from './useUserActivity';
 
 const serverDiaryPageSize = 12;
+type MoviesPagePayload = Awaited<ReturnType<MovieDiaryApi['getMoviesPage']>>;
+
+interface UseMovieDiaryPageOptions {
+  forceServerPaging?: boolean;
+  api?: Pick<MovieDiaryApi, 'getMoviesPage'>;
+}
 
 function mergeMoviesById(existing: MovieLog[], incoming: MovieLog[]): MovieLog[] {
   const merged = [...existing];
@@ -21,16 +28,17 @@ function mergeMoviesById(existing: MovieLog[], incoming: MovieLog[]): MovieLog[]
   return merged;
 }
 
-export function useMovieDiaryPage(movieLogs: MovieLog[]) {
+export function useMovieDiaryPage(movieLogs: MovieLog[], options?: UseMovieDiaryPageOptions) {
   const navigate = useNavigate();
   const { trackPreference } = useUserActivity();
-  const useServerPaging = import.meta.env.MODE !== 'test';
+  const useServerPaging = options?.forceServerPaging ?? import.meta.env.MODE !== 'test';
+  const getMoviesPage = options?.api?.getMoviesPage ?? movieDiaryApi.getMoviesPage;
 
   const [serverMovies, setServerMovies] = useState<MovieLog[]>([]);
   const [serverMode, setServerMode] = useState(false);
   const [serverHasMore, setServerHasMore] = useState(false);
   const [nextPage, setNextPage] = useState(1);
-  const prefetchedPageRef = useRef<Awaited<ReturnType<typeof movieDiaryApi.getMoviesPage>> | null>(null);
+  const prefetchedPageRef = useRef<MoviesPagePayload | null>(null);
 
   const localDiary = useMovieDiary(movieLogs);
   const serverDiary = useMovieDiary(serverMovies, Number.MAX_SAFE_INTEGER);
@@ -43,13 +51,13 @@ export function useMovieDiaryPage(movieLogs: MovieLog[]) {
     }
 
     try {
-      prefetchedPageRef.current = await movieDiaryApi.getMoviesPage(page, serverDiaryPageSize);
+      prefetchedPageRef.current = await getMoviesPage(page, serverDiaryPageSize);
     } catch {
       prefetchedPageRef.current = null;
     }
-  }, [useServerPaging]);
+  }, [getMoviesPage, useServerPaging]);
 
-  const applyServerPage = useCallback((payload: Awaited<ReturnType<typeof movieDiaryApi.getMoviesPage>>, append: boolean) => {
+  const applyServerPage = useCallback((payload: MoviesPagePayload, append: boolean) => {
     setServerMovies((current) => (append ? mergeMoviesById(current, payload.data) : payload.data));
     setServerHasMore(payload.pagination.hasNextPage);
     setNextPage(payload.pagination.page + 1);
@@ -70,7 +78,7 @@ export function useMovieDiaryPage(movieLogs: MovieLog[]) {
 
     const loadFirstPage = async () => {
       try {
-        const pagePayload = await movieDiaryApi.getMoviesPage(1, serverDiaryPageSize);
+        const pagePayload = await getMoviesPage(1, serverDiaryPageSize);
         if (cancelled) {
           return;
         }
@@ -93,7 +101,7 @@ export function useMovieDiaryPage(movieLogs: MovieLog[]) {
     return () => {
       cancelled = true;
     };
-  }, [applyServerPage, useServerPaging, movieLogs.length]);
+  }, [applyServerPage, getMoviesPage, useServerPaging, movieLogs.length]);
 
   const loadMore = useCallback(async () => {
     if (!serverMode || !useServerPaging) {
@@ -113,14 +121,14 @@ export function useMovieDiaryPage(movieLogs: MovieLog[]) {
     }
 
     try {
-      const payload = await movieDiaryApi.getMoviesPage(nextPage, serverDiaryPageSize);
+      const payload = await getMoviesPage(nextPage, serverDiaryPageSize);
       applyServerPage(payload, true);
     } catch (error: unknown) {
       if (isOfflineLikeError(error)) {
         setServerMode(false);
       }
     }
-  }, [activeDiary, applyServerPage, nextPage, serverHasMore, serverMode, useServerPaging]);
+  }, [activeDiary, applyServerPage, getMoviesPage, nextPage, serverHasMore, serverMode, useServerPaging]);
 
   const handleViewModeChange = (mode: 'table' | 'card') => {
     activeDiary.setViewMode(mode);
