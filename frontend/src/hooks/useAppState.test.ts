@@ -1062,6 +1062,67 @@ describe('useAppState', () => {
     expect(movieB?.frames.map((frame) => frame.id)).toEqual(['frame-added']);
   });
 
+  it('ignores cached movie and list bootstrap when starting online', async () => {
+    setNavigatorOnline(true);
+    seedCachedMovies([
+      {
+        id: 'cached-online-movie',
+        movieName: 'Should not hydrate online',
+        watchDate: '2026-09-17',
+        frames: [],
+      },
+    ]);
+    seedCachedLists([
+      {
+        id: 'cached-online-list',
+        name: 'Online cache list',
+        description: 'Should not hydrate online',
+        movieIds: [],
+      },
+    ]);
+
+    vi.spyOn(movieDiaryApi, 'getAllMovies').mockResolvedValue([]);
+    vi.spyOn(movieDiaryApi, 'getAllLists').mockResolvedValue([]);
+
+    const { result } = renderHook(() => useAppState({ forceBackend: true }));
+
+    expect(result.current.movieLogs).toEqual([]);
+    expect(result.current.customLists).toEqual([]);
+
+    await waitFor(() => {
+      expect(movieDiaryApi.getAllMovies).toHaveBeenCalled();
+      expect(movieDiaryApi.getAllLists).toHaveBeenCalled();
+    });
+  });
+
+  it('hydrates cached movie and list bootstrap when starting offline', async () => {
+    setNavigatorOnline(false);
+    seedCachedMovies([
+      {
+        id: 'cached-offline-movie',
+        movieName: 'Hydrated offline',
+        watchDate: '2026-09-17',
+        frames: [],
+      },
+    ]);
+    seedCachedLists([
+      {
+        id: 'cached-offline-list',
+        name: 'Offline cache list',
+        description: 'Hydrated offline',
+        movieIds: ['cached-offline-movie'],
+      },
+    ]);
+
+    vi.spyOn(movieDiaryApi, 'getAllMovies').mockRejectedValue(new ApiNetworkError('Failed to fetch'));
+    vi.spyOn(movieDiaryApi, 'getAllLists').mockRejectedValue(new ApiNetworkError('Failed to fetch'));
+
+    const { result } = renderHook(() => useAppState({ forceBackend: true }));
+
+    expect(result.current.movieLogs.map((movie) => movie.id)).toEqual(['cached-offline-movie']);
+    expect(result.current.customLists.map((list) => list.id)).toEqual(['cached-offline-list']);
+  });
+
   it('restores queued offline-created movies when movie cache is stale after refresh', async () => {
     setNavigatorOnline(false);
     seedCachedMovies([]);

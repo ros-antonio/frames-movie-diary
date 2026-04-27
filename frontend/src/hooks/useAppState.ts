@@ -109,18 +109,23 @@ function reconcileMoviesWithPendingOperations(movieLogs: MovieLog[], operations:
 
 export function useAppState(options?: UseAppStateOptions) {
   const useBackend = options?.forceBackend ?? import.meta.env.MODE !== 'test';
-  const deferInitialMovieBootstrap = useBackend && options?.forceBackend !== true;
+  const shouldHydrateCacheAtStartup = useBackend && !navigator.onLine;
+  const deferInitialMovieBootstrap = useBackend && options?.forceBackend !== true && shouldHydrateCacheAtStartup;
   const [movieLogs, setMovieLogs] = useState<MovieLog[]>(() => {
     if (!useBackend) {
       return [];
     }
 
-    const cachedMovies = readPersistedValue<MovieLog[]>(MOVIES_CACHE_KEY, []);
+    const cachedMovies = shouldHydrateCacheAtStartup
+      ? readPersistedValue<MovieLog[]>(MOVIES_CACHE_KEY, [])
+      : [];
     const queuedOperations = readPersistedValue<PendingOperation[]>(OFFLINE_QUEUE_KEY, []);
     return reconcileMoviesWithPendingOperations(cachedMovies, queuedOperations);
   });
   const [customLists, setCustomLists] = useState<CustomList[]>(() =>
-    (useBackend ? readPersistedValue<CustomList[]>(LISTS_CACHE_KEY, []) : []),
+    (useBackend && shouldHydrateCacheAtStartup
+      ? readPersistedValue<CustomList[]>(LISTS_CACHE_KEY, [])
+      : []),
   );
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>(() =>
     (useBackend ? readPersistedValue<PendingOperation[]>(OFFLINE_QUEUE_KEY, []) : []),
