@@ -28,6 +28,37 @@ const MOVIES_CACHE_KEY = 'movie-diary.movies-cache.v1';
 const LISTS_CACHE_KEY = 'movie-diary.lists-cache.v1';
 const OFFLINE_QUEUE_KEY = 'movie-diary.offline-queue.v1';
 
+const MAX_CACHED_MOVIES = 500;
+const MAX_PENDING_OPERATIONS = 50;
+
+function writeToLocalStorage(key: string, value: unknown): boolean {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'QuotaExceededError') {
+      console.warn(`LocalStorage quota exceeded for key: ${key}`);
+      return false;
+    }
+    throw error;
+  }
+}
+
+function trimMoviesCache(movies: MovieLog[]): MovieLog[] {
+  if (movies.length > MAX_CACHED_MOVIES) {
+    return movies.slice(0, MAX_CACHED_MOVIES);
+  }
+  return movies;
+}
+
+function trimOperationsQueue(operations: PendingOperation[]): PendingOperation[] {
+  if (operations.length > MAX_PENDING_OPERATIONS) {
+    console.warn(`Pending operations queue exceeded limit (${operations.length}), keeping newest ${MAX_PENDING_OPERATIONS}`);
+    return operations.slice(0, MAX_PENDING_OPERATIONS);
+  }
+  return operations;
+}
+
 function readPersistedValue<T>(key: string, fallback: T): T {
   try {
     const rawValue = localStorage.getItem(key);
@@ -445,8 +476,9 @@ export function useAppState(options?: UseAppStateOptions) {
       return;
     }
 
-    localStorage.setItem(MOVIES_CACHE_KEY, JSON.stringify(movieLogs));
-    localStorage.setItem(LISTS_CACHE_KEY, JSON.stringify(customLists));
+    const trimmedMovies = trimMoviesCache(movieLogs);
+    writeToLocalStorage(MOVIES_CACHE_KEY, trimmedMovies);
+    writeToLocalStorage(LISTS_CACHE_KEY, customLists);
   }, [customLists, movieLogs, useBackend]);
 
   useEffect(() => {
@@ -454,7 +486,8 @@ export function useAppState(options?: UseAppStateOptions) {
       return;
     }
 
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(pendingOperations));
+    const trimmedOperations = trimOperationsQueue(pendingOperations);
+    writeToLocalStorage(OFFLINE_QUEUE_KEY, trimmedOperations);
   }, [pendingOperations, useBackend]);
 
   useEffect(() => {
