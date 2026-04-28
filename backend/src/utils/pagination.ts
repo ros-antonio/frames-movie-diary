@@ -1,4 +1,5 @@
 import type { PaginatedResult } from '../types.js';
+import type { PaginationQuery } from '../types.js';
 
 export function paginate<T>(items: T[], page: number, pageSize: number): PaginatedResult<T> {
   const totalItems = items.length;
@@ -19,3 +20,6 @@ export function paginate<T>(items: T[], page: number, pageSize: number): Paginat
   };
 }
 
+export function getPaginationQuery(query: unknown): PaginationQuery {
+  return query as PaginationQuery;
+}

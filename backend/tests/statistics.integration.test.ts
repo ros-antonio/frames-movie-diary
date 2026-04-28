@@ -40,7 +40,6 @@ describe('statistics API', () => {
     expect(response.body.averageRating).toBe(4.5);
     expect(response.body.totalFrames).toBe(2);
     expect(response.body.moviesWithFrames).toBe(2);
-    expect(response.body.topRatedMovies[0].rating).toBe(5);
   });
 
   it('returns null average when no movies are rated', async () => {
@@ -54,7 +53,6 @@ describe('statistics API', () => {
     expect(response.body.ratedMovies).toBe(0);
     expect(response.body.averageRating).toBeNull();
     expect(response.body.ratingDistribution['5']).toBe(0);
-    expect(response.body.topRatedMovies).toEqual([]);
   });
 });
 

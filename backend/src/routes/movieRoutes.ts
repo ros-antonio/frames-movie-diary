@@ -3,11 +3,12 @@ import { movieService } from '../services/movieService.js';
 import { validate } from '../middleware/validate.js';
 import { paginationQuerySchema, movieIdParamSchema, movieFrameParamsSchema } from '../validators/commonSchemas.js';
 import { createMovieSchema, updateMovieSchema, createFrameSchema } from '../validators/movieSchemas.js';
+import { getPaginationQuery } from '../utils/pagination.js';
 
 const movieRoutes = Router();
 
 movieRoutes.get('/', validate(paginationQuerySchema, 'query'), (req, res) => {
-  const { page, pageSize } = req.query as unknown as { page: number; pageSize: number };
+  const { page, pageSize } = getPaginationQuery(req.query);
   res.status(200).json(movieService.list(page, pageSize));
 });
 

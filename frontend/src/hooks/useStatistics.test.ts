@@ -27,7 +27,6 @@ describe('useStatistics', () => {
       averageRating: 3.75,
       totalFrames: 0,
       moviesWithFrames: 0,
-      topRatedMovies: [],
       ratingDistribution: {
         '0.5': 0,
         '1': 1,

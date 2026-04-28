@@ -3,11 +3,12 @@ import { listService } from '../services/listService.js';
 import { validate } from '../middleware/validate.js';
 import { paginationQuerySchema, listIdParamSchema, listMovieParamsSchema } from '../validators/commonSchemas.js';
 import { createListSchema, updateListSchema } from '../validators/listSchemas.js';
+import { getPaginationQuery } from '../utils/pagination.js';
 
 const listRoutes = Router();
 
 listRoutes.get('/', validate(paginationQuerySchema, 'query'), (req, res) => {
-  const { page, pageSize } = req.query as unknown as { page: number; pageSize: number };
+  const { page, pageSize } = getPaginationQuery(req.query);
   res.status(200).json(listService.list(page, pageSize));
 });
 

@@ -37,15 +37,6 @@ class StatisticsService {
       averageRating: ratings.length > 0 ? Number((ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)) : null,
       totalFrames,
       moviesWithFrames: movies.filter((movie) => movie.frames.length > 0).length,
-      topRatedMovies: ratedMovies
-        .slice()
-        .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-        .slice(0, 5)
-        .map((movie) => ({
-          id: movie.id,
-          movieName: movie.movieName,
-          rating: movie.rating,
-        })),
       ratingDistribution,
     };
   }

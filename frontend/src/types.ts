@@ -66,11 +66,6 @@ export interface StatisticsOverview {
     averageRating: number | null;
     totalFrames: number;
     moviesWithFrames: number;
-    topRatedMovies: Array<{
-        id: string;
-        movieName: string;
-        rating?: number;
-    }>;
     ratingDistribution: Record<string, number>;
 }
 
