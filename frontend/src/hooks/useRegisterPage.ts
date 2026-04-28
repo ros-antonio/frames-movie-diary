@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerUser } from '../api/movieDiaryApi';
+import { EMAIL_REGEX, normalizeEmail } from '../utils/formValidation';
 
 interface FormErrors {
   name?: string;
@@ -9,8 +10,6 @@ interface FormErrors {
   confirmPassword?: string;
   form?: string;
 }
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_REGEX = /^[a-zA-Z\s'-]+$/;
 
 function validateRegistrationForm(name: string, email: string, password: string, confirmPassword: string): FormErrors {
@@ -27,7 +26,7 @@ function validateRegistrationForm(name: string, email: string, password: string,
     errors.name = 'Name can only contain letters, spaces, hyphens, and apostrophes';
   }
 
-  const trimmedEmail = email.trim().toLowerCase();
+  const trimmedEmail = normalizeEmail(email);
   if (!trimmedEmail) {
     errors.email = 'Email is required';
   } else if (!EMAIL_REGEX.test(trimmedEmail)) {
@@ -83,7 +82,7 @@ export function useRegisterPage(options?: UseRegisterPageOptions) {
     }
 
     const trimmedName = name.trim();
-    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedEmail = normalizeEmail(email);
 
     if (!useBackend) {
       navigate('/diary');

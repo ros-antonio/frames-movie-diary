@@ -36,11 +36,8 @@ function writeToLocalStorage(key: string, value: unknown): boolean {
     localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch (error) {
-    if (error instanceof Error && error.name === 'QuotaExceededError') {
-      console.warn(`LocalStorage quota exceeded for key: ${key}`);
-      return false;
-    }
-    throw error;
+    console.warn(`Failed to persist ${key} to localStorage.`, error);
+    return false;
   }
 }
 
@@ -53,8 +50,10 @@ function trimMoviesCache(movies: MovieLog[]): MovieLog[] {
 
 function trimOperationsQueue(operations: PendingOperation[]): PendingOperation[] {
   if (operations.length > MAX_PENDING_OPERATIONS) {
-    console.warn(`Pending operations queue exceeded limit (${operations.length}), keeping newest ${MAX_PENDING_OPERATIONS}`);
-    return operations.slice(0, MAX_PENDING_OPERATIONS);
+    console.warn(
+      `Pending operations queue exceeded limit (${operations.length}), keeping newest ${MAX_PENDING_OPERATIONS}`,
+    );
+    return operations.slice(-MAX_PENDING_OPERATIONS);
   }
   return operations;
 }
@@ -297,107 +296,109 @@ export function useAppState(options?: UseAppStateOptions) {
         return inFlightSyncRef.current;
       }
 
-      const replayPromise = (async (): Promise<boolean> => {
-      if (!useBackend || operationsToReplay.length === 0) {
-        return true;
-      }
+      const replayPendingOperationsTask = async (): Promise<boolean> => {
+        if (!useBackend || operationsToReplay.length === 0) {
+          return true;
+        }
 
-      if (!navigator.onLine) {
-        setIsOffline(true);
-        return false;
-      }
+        if (!navigator.onLine) {
+          setIsOffline(true);
+          return false;
+        }
 
-      const remaining = [...operationsToReplay];
-      const movieIdMap = new Map<string, string>();
-      const listIdMap = new Map<string, string>();
+        const remaining = [...operationsToReplay];
+        const movieIdMap = new Map<string, string>();
+        const listIdMap = new Map<string, string>();
 
-      const mapMovieId = (movieId: string) => movieIdMap.get(movieId) ?? movieId;
-      const mapListId = (listId: string) => listIdMap.get(listId) ?? listId;
+        const mapMovieId = (movieId: string) => movieIdMap.get(movieId) ?? movieId;
+        const mapListId = (listId: string) => listIdMap.get(listId) ?? listId;
 
-      while (remaining.length > 0) {
-        const operation = remaining[0];
+        while (remaining.length > 0) {
+          const operation = remaining[0];
 
-        try {
-          switch (operation.type) {
-            case 'createMovie': {
-              const createdMovie = await movieDiaryApi.createMovie(operation.movie);
-              movieIdMap.set(operation.tempId, createdMovie.id);
-              break;
+          try {
+            switch (operation.type) {
+              case 'createMovie': {
+                const createdMovie = await movieDiaryApi.createMovie(operation.movie);
+                movieIdMap.set(operation.tempId, createdMovie.id);
+                break;
+              }
+              case 'updateMovie': {
+                await movieDiaryApi.updateMovie(mapMovieId(operation.movieId), operation.movie);
+                break;
+              }
+              case 'deleteMovie': {
+                await movieDiaryApi.deleteMovie(mapMovieId(operation.movieId));
+                break;
+              }
+              case 'createList': {
+                const createdList = await movieDiaryApi.createList(operation.name, operation.description);
+                listIdMap.set(operation.tempId, createdList.id);
+                break;
+              }
+              case 'deleteList': {
+                await movieDiaryApi.deleteList(mapListId(operation.listId));
+                break;
+              }
+              case 'addMovieToList': {
+                await movieDiaryApi.addMovieToList(mapListId(operation.listId), mapMovieId(operation.movieId));
+                break;
+              }
+              case 'removeMovieFromList': {
+                await movieDiaryApi.removeMovieFromList(mapListId(operation.listId), mapMovieId(operation.movieId));
+                break;
+              }
+              case 'addFrame': {
+                await movieDiaryApi.addFrame(mapMovieId(operation.movieId), operation.frame);
+                break;
+              }
+              case 'deleteFrame': {
+                await movieDiaryApi.deleteFrame(mapMovieId(operation.movieId), operation.frameId);
+                break;
+              }
+              default:
+                break;
             }
-            case 'updateMovie': {
-              await movieDiaryApi.updateMovie(mapMovieId(operation.movieId), operation.movie);
-              break;
-            }
-            case 'deleteMovie': {
-              await movieDiaryApi.deleteMovie(mapMovieId(operation.movieId));
-              break;
-            }
-            case 'createList': {
-              const createdList = await movieDiaryApi.createList(operation.name, operation.description);
-              listIdMap.set(operation.tempId, createdList.id);
-              break;
-            }
-            case 'deleteList': {
-              await movieDiaryApi.deleteList(mapListId(operation.listId));
-              break;
-            }
-            case 'addMovieToList': {
-              await movieDiaryApi.addMovieToList(mapListId(operation.listId), mapMovieId(operation.movieId));
-              break;
-            }
-            case 'removeMovieFromList': {
-              await movieDiaryApi.removeMovieFromList(mapListId(operation.listId), mapMovieId(operation.movieId));
-              break;
-            }
-            case 'addFrame': {
-              await movieDiaryApi.addFrame(mapMovieId(operation.movieId), operation.frame);
-              break;
-            }
-            case 'deleteFrame': {
-              await movieDiaryApi.deleteFrame(mapMovieId(operation.movieId), operation.frameId);
-              break;
-            }
-            default:
-              break;
-          }
 
-          remaining.shift();
-          setPendingOperations([...remaining]);
-        } catch (error: unknown) {
-          if (shouldIgnoreSyncError(operation, error)) {
             remaining.shift();
             setPendingOperations([...remaining]);
-            continue;
-          }
+          } catch (error: unknown) {
+            if (shouldIgnoreSyncError(operation, error)) {
+              remaining.shift();
+              setPendingOperations([...remaining]);
+              continue;
+            }
 
+            if (isOfflineLikeError(error)) {
+              setIsOffline(true);
+              return false;
+            }
+
+            setErrorFromUnknown(error, 'Could not sync offline changes.');
+            return false;
+          }
+        }
+
+        try {
+          const [movies, lists] = await Promise.all([movieDiaryApi.getAllMovies(), movieDiaryApi.getAllLists()]);
+          setMovieLogs(movies);
+          setCustomLists(lists);
+          clearOperationError();
+        } catch (error: unknown) {
           if (isOfflineLikeError(error)) {
             setIsOffline(true);
             return false;
           }
 
-          setErrorFromUnknown(error, 'Could not sync offline changes.');
-          return false;
-        }
-      }
-
-      try {
-        const [movies, lists] = await Promise.all([movieDiaryApi.getAllMovies(), movieDiaryApi.getAllLists()]);
-        setMovieLogs(movies);
-        setCustomLists(lists);
-        clearOperationError();
-      } catch (error: unknown) {
-        if (isOfflineLikeError(error)) {
-          setIsOffline(true);
+          setErrorFromUnknown(error, 'Could not refresh data after sync.');
           return false;
         }
 
-        setErrorFromUnknown(error, 'Could not refresh data after sync.');
-        return false;
-      }
+        setIsOffline(false);
+        return true;
+      };
 
-      setIsOffline(false);
-      return true;
-      })();
+      const replayPromise = replayPendingOperationsTask();
 
       inFlightSyncRef.current = replayPromise;
       replayPromise.finally(() => {
@@ -476,8 +477,7 @@ export function useAppState(options?: UseAppStateOptions) {
       return;
     }
 
-    const trimmedMovies = trimMoviesCache(movieLogs);
-    writeToLocalStorage(MOVIES_CACHE_KEY, trimmedMovies);
+    writeToLocalStorage(MOVIES_CACHE_KEY, trimMoviesCache(movieLogs));
     writeToLocalStorage(LISTS_CACHE_KEY, customLists);
   }, [customLists, movieLogs, useBackend]);
 
@@ -488,14 +488,6 @@ export function useAppState(options?: UseAppStateOptions) {
 
     const trimmedOperations = trimOperationsQueue(pendingOperations);
     writeToLocalStorage(OFFLINE_QUEUE_KEY, trimmedOperations);
-  }, [pendingOperations, useBackend]);
-
-  useEffect(() => {
-    if (!useBackend || pendingOperations.length === 0) {
-      return;
-    }
-
-    setMovieLogs((prev) => reconcileMoviesWithPendingOperations(prev, pendingOperations));
   }, [pendingOperations, useBackend]);
 
   const shouldQueueOperation = (error?: unknown) => {

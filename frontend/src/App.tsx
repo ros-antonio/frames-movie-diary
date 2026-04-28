@@ -167,56 +167,56 @@ export default function App() {
         </div>
       )}
       <Routes>
-      <Route
-        path="/"
-        element={<LandingPage onLogin={() => navigate('/login')} onRegister={() => navigate('/register')} />}
-      />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/statistics" element={<Statistics movieLogs={movieLogs} />} />
-      <Route
-        path="/custom-lists"
-        element={
-          <CustomLists
-            movieLogs={movieLogs}
-            customLists={customLists}
-            onCreateList={handleCreateList}
-            onDeleteList={handleDeleteList}
-            onAddMovieToList={handleAddMovieToList}
-            onRemoveMovieFromList={handleRemoveMovieFromList}
-          />
-        }
-      />
-      <Route
-        path="/diary"
-        element={
-          <DiaryRoute
-            movieLogs={movieLogs}
-            onAddClick={() => navigate('/diary/new')}
-            onSelectMovie={(id) => {
-              logActivity({ eventType: 'view', movieId: id, pageRoute: '/diary' });
-              navigate(`/diary/${id}`);
-            }}
-          />
-        }
-      />
-      <Route path="/diary/new" element={<AddMovieRoute onSave={handleAddMovie} />} />
-      <Route
-        path="/diary/:movieId"
-        element={
-          <MovieDetailRoute
-            movieLogs={movieLogs}
-            onDelete={handleDeleteMovie}
-            onAddFrame={handleAddFrameToMovie}
-            onDeleteFrame={handleDeleteFrameFromMovie}
-          />
-        }
-      />
-      <Route
-        path="/diary/:movieId/edit"
-        element={<EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} />}
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="/"
+          element={<LandingPage onLogin={() => navigate('/login')} onRegister={() => navigate('/register')} />}
+        />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/statistics" element={<Statistics movieLogs={movieLogs} />} />
+        <Route
+          path="/custom-lists"
+          element={
+            <CustomLists
+              movieLogs={movieLogs}
+              customLists={customLists}
+              onCreateList={handleCreateList}
+              onDeleteList={handleDeleteList}
+              onAddMovieToList={handleAddMovieToList}
+              onRemoveMovieFromList={handleRemoveMovieFromList}
+            />
+          }
+        />
+        <Route
+          path="/diary"
+          element={
+            <DiaryRoute
+              movieLogs={movieLogs}
+              onAddClick={() => navigate('/diary/new')}
+              onSelectMovie={(id) => {
+                logActivity({ eventType: 'view', movieId: id, pageRoute: '/diary' });
+                navigate(`/diary/${id}`);
+              }}
+            />
+          }
+        />
+        <Route path="/diary/new" element={<AddMovieRoute onSave={handleAddMovie} />} />
+        <Route
+          path="/diary/:movieId"
+          element={
+            <MovieDetailRoute
+              movieLogs={movieLogs}
+              onDelete={handleDeleteMovie}
+              onAddFrame={handleAddFrameToMovie}
+              onDeleteFrame={handleDeleteFrameFromMovie}
+            />
+          }
+        />
+        <Route
+          path="/diary/:movieId/edit"
+          element={<EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} />}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );

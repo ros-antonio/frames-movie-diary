@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../api/movieDiaryApi';
+import { EMAIL_REGEX, normalizeEmail } from '../utils/formValidation';
 
 interface FormErrors {
   email?: string;
@@ -8,12 +9,10 @@ interface FormErrors {
   form?: string;
 }
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 function validateLoginForm(email: string, password: string): FormErrors {
   const errors: FormErrors = {};
 
-  const trimmedEmail = email.trim().toLowerCase();
+  const trimmedEmail = normalizeEmail(email);
   if (!trimmedEmail) {
     errors.email = 'Email is required';
   } else if (!EMAIL_REGEX.test(trimmedEmail)) {
@@ -54,7 +53,7 @@ export function useLoginPage(options?: UseLoginPageOptions) {
       return;
     }
 
-    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedEmail = normalizeEmail(email);
 
     if (!useBackend) {
       navigate('/diary');

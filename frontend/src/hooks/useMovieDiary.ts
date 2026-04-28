@@ -8,13 +8,13 @@ type SortOrder = 'asc' | 'desc';
 
 export function useMovieDiary(movieLogs: MovieLog[], itemsPerBatch: number = 12) {
   const [visibleCount, setVisibleCount] = useState(itemsPerBatch);
-  const [viewMode, setViewMode] = useState<ViewMode>(() => getPreferences().viewMode);
-  const [sortConfig, setSortConfig] = useState<{ field: SortField; order: SortOrder } | null>(() => {
-    const savedPreferences = getPreferences();
-    return savedPreferences.sortBy === 'none' || savedPreferences.sortOrder === 'none'
+  const [savedPreferences] = useState(() => getPreferences());
+  const [viewMode, setViewMode] = useState<ViewMode>(savedPreferences.viewMode);
+  const [sortConfig, setSortConfig] = useState<{ field: SortField; order: SortOrder } | null>(
+    savedPreferences.sortBy === 'none' || savedPreferences.sortOrder === 'none'
       ? null
-      : { field: savedPreferences.sortBy, order: savedPreferences.sortOrder };
-  });
+      : { field: savedPreferences.sortBy, order: savedPreferences.sortOrder },
+  );
 
   const sortedMovies = useMemo(() => {
     const items = [...movieLogs];

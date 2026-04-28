@@ -1,14 +1,7 @@
 import { ArrowLeft, Film, Calendar, Star, MessageSquare, Link as LinkIcon } from 'lucide-react';
 import type { MovieInput, MovieLog } from '../types';
 import { useMovieForm } from '../hooks/useMovieForm';
-
-function getTodayDateInputValue(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
+import { getTodayDateInputValue } from '../utils/dateInput';
 
 interface LogNewMovieProps {
     onSave: (movie: MovieInput) => void;

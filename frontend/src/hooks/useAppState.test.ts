@@ -1123,6 +1123,60 @@ describe('useAppState', () => {
     expect(result.current.customLists.map((list) => list.id)).toEqual(['cached-offline-list']);
   });
 
+  it('trims persisted movie cache to the newest 500 entries', async () => {
+    setNavigatorOnline(false);
+    seedCachedMovies(
+      Array.from({ length: 501 }, (_, index) => ({
+        id: `movie-${index + 1}`,
+        movieName: `Movie ${index + 1}`,
+        watchDate: '2026-09-17',
+        frames: [],
+      })),
+    );
+    vi.spyOn(movieDiaryApi, 'getAllLists').mockResolvedValue([]);
+
+    renderHook(() => useAppState({ forceBackend: true }));
+
+    await waitFor(() => {
+      const persistedMovies = JSON.parse(localStorage.getItem('movie-diary.movies-cache.v1') ?? '[]') as Array<{
+        id: string;
+      }>;
+
+      expect(persistedMovies).toHaveLength(500);
+      expect(persistedMovies[0]?.id).toBe('movie-1');
+      expect(persistedMovies[persistedMovies.length - 1]?.id).toBe('movie-500');
+    });
+  });
+
+  it('trims persisted offline operations to the newest 50 entries', async () => {
+    setNavigatorOnline(false);
+    seedPendingOperations(
+      Array.from({ length: 51 }, (_, index) => ({
+        id: `queued-op-${index + 1}`,
+        createdAt: `2026-09-17T10:${String(index).padStart(2, '0')}:00.000Z`,
+        type: 'createMovie',
+        tempId: `temp-${index + 1}`,
+        movie: {
+          movieName: `Queued Movie ${index + 1}`,
+          watchDate: '2026-09-17',
+        },
+      })),
+    );
+    vi.spyOn(movieDiaryApi, 'getAllLists').mockResolvedValue([]);
+
+    renderHook(() => useAppState({ forceBackend: true }));
+
+    await waitFor(() => {
+      const persistedQueue = JSON.parse(localStorage.getItem('movie-diary.offline-queue.v1') ?? '[]') as Array<{
+        id: string;
+      }>;
+
+      expect(persistedQueue).toHaveLength(50);
+      expect(persistedQueue[0]?.id).toBe('queued-op-2');
+      expect(persistedQueue[persistedQueue.length - 1]?.id).toBe('queued-op-51');
+    });
+  });
+
   it('restores queued offline-created movies when movie cache is stale after refresh', async () => {
     setNavigatorOnline(false);
     seedCachedMovies([]);

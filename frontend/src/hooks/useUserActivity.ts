@@ -8,12 +8,18 @@ const PREFERENCES_COOKIE = 'frames_prefs';
 const SESSION_COOKIE = 'frames_session';
 const MAX_ACTIVITY_COOKIE_CHARS = 3800;
 const PAGE_VISIT_DEDUPE_MS = 800;
+const DEFAULT_PREFERENCES: UserPreference = {
+  viewMode: 'table',
+  sortBy: 'none',
+  sortOrder: 'none',
+  itemsPerPage: 6,
+};
 
 let lastTrackedPagePath: string | null = null;
 let lastTrackedPageAt = 0;
 
 function generateSessionId(): string {
-  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
 interface UseUserActivityOptions {
@@ -78,7 +84,7 @@ export function useUserActivity(options: UseUserActivityOptions = {}) {
     const currentPrefs = getPreferences();
     const updated = { ...currentPrefs, ...preferences };
     setCookie(PREFERENCES_COOKIE, JSON.stringify(updated), { maxAge: 365 * 24 * 60 * 60 });
-    
+
     logActivity({
       eventType: 'preference_change',
       pageRoute: location.pathname,
@@ -105,21 +111,15 @@ export function getActivityLog(): UserActivityLog {
 
 export function getPreferences(): UserPreference {
   const stored = getCookie(PREFERENCES_COOKIE);
-  const defaults: UserPreference = {
-    viewMode: 'table',
-    sortBy: 'none',
-    sortOrder: 'none',
-    itemsPerPage: 6,
-  };
 
   if (stored) {
     try {
-      return { ...defaults, ...JSON.parse(stored) };
+      return { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
     } catch {
-      return defaults;
+      return DEFAULT_PREFERENCES;
     }
   }
-  return defaults;
+  return DEFAULT_PREFERENCES;
 }
 
 function saveActivityLog(log: UserActivityLog) {
@@ -146,12 +146,7 @@ function saveActivityLog(log: UserActivityLog) {
 function createEmptyLog(sessionId: string): UserActivityLog {
   return {
     sessionId,
-    preferences: {
-      viewMode: 'table',
-      sortBy: 'none',
-      sortOrder: 'none',
-      itemsPerPage: 6,
-    },
+    preferences: DEFAULT_PREFERENCES,
     activities: [],
     lastActive: new Date().toISOString(),
     createdAt: new Date().toISOString(),

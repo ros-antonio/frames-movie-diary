@@ -94,17 +94,16 @@ export function useStatistics(movieLogs: MovieLog[], options?: UseStatisticsOpti
     return localStats;
   }
 
-  const mostCommonRating = (() => {
-    const ratingData = toRatingData(backendOverview.ratingDistribution);
-    const max = ratingData.reduce((prev, current) => (prev.count > current.count ? prev : current));
-    return max.count > 0 ? max.rating : '-';
-  })();
+  const ratingData = toRatingData(backendOverview.ratingDistribution);
+
+  const max = ratingData.reduce((prev, current) => (prev.count > current.count ? prev : current));
+  const mostCommonRating = max.count > 0 ? max.rating : '-';
 
   return {
     totalMovies: backendOverview.totalMovies,
     averageRating: backendOverview.averageRating ?? 0,
     mostCommonRating,
-    ratingData: toRatingData(backendOverview.ratingDistribution),
+    ratingData,
   };
 }
 
