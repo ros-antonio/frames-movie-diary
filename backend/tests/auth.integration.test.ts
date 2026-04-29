@@ -1,11 +1,11 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { app, resetStore } from './testUtils.js';
-import { store } from '../src/repositories/inMemoryStore.js';
+import { prisma } from '../src/repositories/prismaClient.js';
 
 describe('auth API', () => {
-  beforeEach(() => {
-    resetStore();
+  beforeEach(async () => {
+    await resetStore();
   });
 
   it('registers and logs in a user', async () => {
@@ -89,13 +89,10 @@ describe('auth API', () => {
     });
 
     const userId = register.body.id as string;
-    const user = store.users.get(userId);
-    if (!user) {
-      throw new Error('Expected registered user in store');
-    }
-
-    user.passwordHash = 'abcd';
-    store.users.set(userId, user);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: 'abcd' },
+    });
 
     const response = await request(app).post('/api/auth/login').send({
       email: 'tony@example.com',

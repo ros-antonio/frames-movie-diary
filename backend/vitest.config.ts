@@ -2,6 +2,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    threads: false,
+    isolate: false,
+    fileParallelism: false,
     environment: 'node',
     include: ['tests/**/*.test.ts'],
     coverage: {
@@ -12,4 +15,3 @@ export default defineConfig({
     },
   },
 });
-

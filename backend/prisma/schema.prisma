@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String @id @default(uuid())
+  email        String @unique
+  name         String
+  passwordHash String
+  movies       Movie[]
+  lists        CustomList[]
+}
+
+model Movie {
+  id          String   @id @default(uuid())
+  movieName   String
+  watchDate   DateTime
+  rating      Float?
+  review      String?
+  movieLink   String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId      String?
+  frames      Frame[]
+  listEntries ListMovie[]
+}
+
+model Frame {
+  id        String   @id @default(uuid())
+  imageUrl  String
+  timestamp String
+  caption   String
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movieId   String
+}
+
+model CustomList {
+  id          String      @id @default(uuid())
+  name        String
+  description String      @default("")
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId      String?
+  entries     ListMovie[]
+}
+
+model ListMovie {
+  id      String     @id @default(uuid())
+  list    CustomList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  listId  String
+  movie   Movie      @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movieId String
+
+  @@unique([listId, movieId])
+}
+
+

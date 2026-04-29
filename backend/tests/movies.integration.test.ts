@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { app, createList, createMovie, resetStore } from './testUtils.js';
 
 describe('movies API', () => {
-  beforeEach(() => {
-    resetStore();
+  beforeEach(async () => {
+    await resetStore();
   });
 
   it('creates and fetches a movie', async () => {

@@ -1,6 +1,6 @@
-import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { scryptSync, timingSafeEqual } from 'node:crypto';
 import { HttpError } from '../utils/httpError.js';
-import { store } from '../repositories/inMemoryStore.js';
+import { prisma } from '../repositories/prismaClient.js';
 
 interface RegisterInput {
   name: string;
@@ -40,41 +40,41 @@ function passwordsMatch(password: string, hash: string): boolean {
 }
 
 class AuthService {
-  register(input: RegisterInput): AuthUser {
+  async register(input: RegisterInput): Promise<AuthUser> {
     const email = normalizeEmail(input.email);
-    const existingUserId = store.userIdByEmail.get(email);
 
-    if (existingUserId) {
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existing) {
       throw new HttpError(409, 'Email already registered');
     }
 
-    const userId = randomUUID();
-    const user = {
-      id: userId,
-      name: input.name.trim(),
-      email,
-      passwordHash: hashPassword(input.password),
-    };
+    const user = await prisma.user.create({
+      data: {
+        name: input.name.trim(),
+        email,
+        passwordHash: hashPassword(input.password),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    });
 
-    store.users.set(userId, user);
-    store.userIdByEmail.set(email, userId);
-
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    };
+    return user;
   }
 
-  login(input: LoginInput): AuthUser {
+  async login(input: LoginInput): Promise<AuthUser> {
     const email = normalizeEmail(input.email);
-    const userId = store.userIdByEmail.get(email);
 
-    if (!userId) {
-      throw new HttpError(401, 'Invalid email or password');
-    }
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
 
-    const user = store.users.get(userId);
     if (!user || !passwordsMatch(input.password, user.passwordHash)) {
       throw new HttpError(401, 'Invalid email or password');
     }
@@ -88,4 +88,3 @@ class AuthService {
 }
 
 export const authService = new AuthService();
-

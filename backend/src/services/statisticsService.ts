@@ -1,14 +1,42 @@
-import { store } from '../repositories/inMemoryStore.js';
+import { prisma } from '../repositories/prismaClient.js';
 
 class StatisticsService {
-  getOverview() {
-    const movies = Array.from(store.movies.values());
-    const ratedMovies = movies.filter((movie) => typeof movie.rating === 'number');
-    const ratings = ratedMovies
-      .map((movie) => movie.rating)
-      .filter((rating): rating is number => typeof rating === 'number');
+  async getOverview() {
+    const [totalMovies, ratedMovies, totalFrames, moviesWithFrames, ratingAggregate, groupedRatings] = await Promise.all([
+      prisma.movie.count(),
+      prisma.movie.count({
+        where: {
+          rating: {
+            not: null,
+          },
+        },
+      }),
+      prisma.frame.count(),
+      prisma.movie.count({
+        where: {
+          frames: {
+            some: {},
+          },
+        },
+      }),
+      prisma.movie.aggregate({
+        _avg: {
+          rating: true,
+        },
+      }),
+      prisma.movie.groupBy({
+        by: ['rating'],
+        where: {
+          rating: {
+            not: null,
+          },
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+    ]);
 
-    const totalFrames = movies.reduce((acc, movie) => acc + movie.frames.length, 0);
     const ratingDistribution: Record<string, number> = {
       '0.5': 0,
       '1': 0,
@@ -22,21 +50,27 @@ class StatisticsService {
       '5': 0,
     };
 
-    for (const value of ratings) {
-      const normalized = Math.round(value * 2) / 2;
+    for (const row of groupedRatings) {
+      if (row.rating === null) {
+        continue;
+      }
+
+      const normalized = Math.round(row.rating * 2) / 2;
       const key = String(normalized);
       if (ratingDistribution[key] !== undefined) {
-        ratingDistribution[key] += 1;
+        ratingDistribution[key] = row._count._all;
       }
     }
 
+    const average = ratingAggregate._avg.rating;
+
     return {
-      totalMovies: movies.length,
-      ratedMovies: ratedMovies.length,
-      unratedMovies: movies.length - ratedMovies.length,
-      averageRating: ratings.length > 0 ? Number((ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)) : null,
+      totalMovies,
+      ratedMovies,
+      unratedMovies: totalMovies - ratedMovies,
+      averageRating: average === null ? null : Number(average.toFixed(2)),
       totalFrames,
-      moviesWithFrames: movies.filter((movie) => movie.frames.length > 0).length,
+      moviesWithFrames,
       ratingDistribution,
     };
   }

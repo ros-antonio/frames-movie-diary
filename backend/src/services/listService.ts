@@ -1,8 +1,6 @@
-import { randomUUID } from 'node:crypto';
 import type { CustomList } from '../types.js';
-import { store } from '../repositories/inMemoryStore.js';
+import { prisma } from '../repositories/prismaClient.js';
 import { HttpError } from '../utils/httpError.js';
-import { paginate } from '../utils/pagination.js';
 
 export interface ListInput {
   name: string;
@@ -10,76 +8,150 @@ export interface ListInput {
 }
 
 class ListService {
-  list(page: number, pageSize: number) {
-    const lists = Array.from(store.customLists.values()).reverse();
-
-    return paginate(lists, page, pageSize);
+  private toCustomList(list: {
+    id: string;
+    name: string;
+    description: string;
+    entries: Array<{ movieId: string }>;
+  }): CustomList {
+    return {
+      id: list.id,
+      name: list.name,
+      description: list.description,
+      movieIds: list.entries.map((entry) => entry.movieId),
+    };
   }
 
-  getById(listId: string): CustomList {
-    const list = store.customLists.get(listId);
+  async list(page: number, pageSize: number) {
+    const totalItems = await prisma.customList.count();
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const clampedPage = Math.min(Math.max(page, 1), totalPages);
+    const skip = (clampedPage - 1) * pageSize;
+
+    const lists = await prisma.customList.findMany({
+      include: { entries: true },
+      orderBy: { id: 'desc' },
+      skip,
+      take: pageSize,
+    });
+
+    return {
+      data: lists.map((list) => this.toCustomList(list)),
+      pagination: {
+        page: clampedPage,
+        pageSize,
+        totalItems,
+        totalPages,
+        hasNextPage: clampedPage < totalPages,
+        hasPreviousPage: clampedPage > 1,
+      },
+    };
+  }
+
+  async getById(listId: string): Promise<CustomList> {
+    const list = await prisma.customList.findUnique({
+      where: { id: listId },
+      include: { entries: true },
+    });
+
     if (!list) {
       throw new HttpError(404, 'List not found');
     }
 
-    return list;
+    return this.toCustomList(list);
   }
 
-  create(input: ListInput): CustomList {
-    const list: CustomList = {
-      id: randomUUID(),
-      name: input.name,
-      description: input.description,
-      movieIds: [],
-    };
+  async create(input: ListInput): Promise<CustomList> {
+    const list = await prisma.customList.create({
+      data: {
+        name: input.name,
+        description: input.description,
+      },
+      include: { entries: true },
+    });
 
-    store.customLists.set(list.id, list);
-    return list;
+    return this.toCustomList(list);
   }
 
-  update(listId: string, input: ListInput): CustomList {
-    const existing = this.getById(listId);
-    const updated: CustomList = {
-      ...existing,
-      name: input.name,
-      description: input.description,
-    };
+  async update(listId: string, input: ListInput): Promise<CustomList> {
+    try {
+      const list = await prisma.customList.update({
+        where: { id: listId },
+        data: {
+          name: input.name,
+          description: input.description,
+        },
+        include: { entries: true },
+      });
 
-    store.customLists.set(listId, updated);
-    return updated;
+      return this.toCustomList(list);
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2025') {
+        throw new HttpError(404, 'List not found');
+      }
+
+      throw error;
+    }
   }
 
-  delete(listId: string): void {
-    this.getById(listId);
-    store.customLists.delete(listId);
+  async delete(listId: string): Promise<void> {
+    try {
+      await prisma.customList.delete({
+        where: { id: listId },
+      });
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2025') {
+        throw new HttpError(404, 'List not found');
+      }
+
+      throw error;
+    }
   }
 
-  addMovie(listId: string, movieId: string): CustomList {
-    const list = this.getById(listId);
+  async addMovie(listId: string, movieId: string): Promise<CustomList> {
+    const listExists = await prisma.customList.count({ where: { id: listId } });
+    if (listExists === 0) {
+      throw new HttpError(404, 'List not found');
+    }
 
-    if (!store.movies.has(movieId)) {
+    const movieExists = await prisma.movie.count({ where: { id: movieId } });
+    if (movieExists === 0) {
       throw new HttpError(404, 'Movie not found');
     }
 
-    if (list.movieIds.includes(movieId)) {
-      throw new HttpError(409, 'Movie already in list');
+    try {
+      await prisma.listMovie.create({
+        data: {
+          listId,
+          movieId,
+        },
+      });
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2002') {
+        throw new HttpError(409, 'Movie already in list');
+      }
+
+      throw error;
     }
 
-    list.movieIds.push(movieId);
-    store.customLists.set(list.id, list);
-    return list;
+    return this.getById(listId);
   }
 
-  removeMovie(listId: string, movieId: string): CustomList {
-    const list = this.getById(listId);
+  async removeMovie(listId: string, movieId: string): Promise<CustomList> {
+    const list = await this.getById(listId);
 
     if (!list.movieIds.includes(movieId)) {
       throw new HttpError(404, 'Movie not in list');
     }
 
-    list.movieIds = list.movieIds.filter((id) => id !== movieId);
-    store.customLists.set(list.id, list);
-    return list;
+    await prisma.listMovie.deleteMany({
+      where: {
+        listId,
+        movieId,
+      },
+    });
+
+    return this.getById(listId);
   }
 }
 
