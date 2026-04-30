@@ -194,5 +194,67 @@ describe('movies API', () => {
     expect(response.status).toBe(404);
     expect(response.body.message).toBe('Frame not found');
   });
+
+  it('returns 404 when fetching a missing movie', async () => {
+    const response = await request(app)
+        .get('/api/movies/00000000-0000-4000-8000-000000000001')
+        .set('X-User-Id', TEST_USER_ID);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 404 when updating a missing movie', async () => {
+    const response = await request(app)
+        .put('/api/movies/00000000-0000-4000-8000-000000000001')
+        .set('X-User-Id', TEST_USER_ID)
+        .send({
+          movieName: 'Missing',
+          watchDate: '2025-01-01',
+        });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 404 when deleting a missing movie', async () => {
+    const response = await request(app)
+        .delete('/api/movies/00000000-0000-4000-8000-000000000001')
+        .set('X-User-Id', TEST_USER_ID);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 404 when adding a frame to a missing movie', async () => {
+    const response = await request(app)
+        .post('/api/movies/00000000-0000-4000-8000-000000000001/frames')
+        .set('X-User-Id', TEST_USER_ID)
+        .send({
+          imageUrl: 'data:image/png;base64,abc',
+          timestamp: '01:00',
+          caption: 'Test',
+        });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('rejects invalid pagination parameters safely', async () => {
+    const response = await request(app)
+        .get('/api/movies?page=-1&pageSize=500')
+        .set('X-User-Id', TEST_USER_ID);
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 400 when creating a movie with a non-existent user ID (P2003)', async () => {
+    const response = await request(app)
+      .post('/api/movies')
+      .set('X-User-Id', 'ghost-user-id-123')
+      .send({
+        movieName: 'Ghost Movie',
+        watchDate: '2025-01-01',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('Invalid user ID');
+  });
 });
 

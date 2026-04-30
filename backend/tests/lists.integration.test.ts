@@ -1,6 +1,6 @@
 import request from 'supertest';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { app, createList, createMovie, resetStore, TEST_USER_ID } from './testUtils.js';
+import {beforeEach, describe, expect, it} from 'vitest';
+import {app, createList, createMovie, resetStore, TEST_USER_ID} from './testUtils.js';
 
 describe('lists API', () => {
   beforeEach(async () => {
@@ -35,9 +35,9 @@ describe('lists API', () => {
   });
 
   it('supports server-side pagination', async () => {
-    await createList({ name: 'List 1' });
-    await createList({ name: 'List 2' });
-    await createList({ name: 'List 3' });
+    await createList({name: 'List 1'});
+    await createList({name: 'List 2'});
+    await createList({name: 'List 3'});
 
     const page1 = await request(app)
       .get('/api/lists?page=1&pageSize=2')
@@ -134,5 +134,45 @@ describe('lists API', () => {
       .set('X-User-Id', TEST_USER_ID);
     expect(missing.status).toBe(404);
   });
-});
 
+  it('returns 404 when fetching a missing list', async () => {
+    const response = await request(app)
+      .get('/api/lists/00000000-0000-4000-8000-000000000001')
+      .set('X-User-Id', TEST_USER_ID);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 404 when updating a missing list', async () => {
+    const response = await request(app)
+      .put('/api/lists/00000000-0000-4000-8000-000000000001')
+      .set('X-User-Id', TEST_USER_ID)
+      .send({
+        name: 'Missing',
+        description: 'Does not exist',
+      });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 404 when deleting a missing list', async () => {
+    const response = await request(app)
+      .delete('/api/lists/00000000-0000-4000-8000-000000000001')
+      .set('X-User-Id', TEST_USER_ID);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 400 when creating a list with a non-existent user ID (P2003)', async () => {
+    const response = await request(app)
+      .post('/api/lists')
+      .set('X-User-Id', 'ghost-user-id-123')
+      .send({
+        name: 'Ghost List',
+        description: 'Spooky',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('Invalid user ID');
+  });
+});

@@ -1,5 +1,4 @@
 import type { PaginatedResult } from '../types.js';
-import type { PaginationQuery } from '../types.js';
 
 export function paginate<T>(items: T[], page: number, pageSize: number): PaginatedResult<T> {
   const totalItems = items.length;
@@ -20,6 +19,19 @@ export function paginate<T>(items: T[], page: number, pageSize: number): Paginat
   };
 }
 
-export function getPaginationQuery(query: unknown): PaginationQuery {
-  return query as PaginationQuery;
+export function getPaginationQuery(query: Record<string, any>) {
+  let page = parseInt(String(query.page), 10);
+  let pageSize = parseInt(String(query.pageSize), 10);
+
+  if (isNaN(page) || page < 1) {
+    page = 1;
+  }
+
+  if (isNaN(pageSize) || pageSize < 1) {
+    pageSize = 10;
+  } else if (pageSize > 100) {
+    pageSize = 100;
+  }
+
+  return { page, pageSize };
 }
