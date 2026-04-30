@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CustomList, MovieInput, MovieLog, SavedFrame } from '../types';
-import { ApiHttpError, isOfflineLikeError, movieDiaryApi } from '../api/movieDiaryApi';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import type {CustomList, MovieInput, MovieLog, SavedFrame} from '../types';
+import {ApiHttpError, isOfflineLikeError, movieDiaryApi} from '../api/movieDiaryApi';
 
 interface UseAppStateOptions {
   forceBackend?: boolean;
@@ -163,6 +163,7 @@ export function useAppState(options?: UseAppStateOptions) {
   const [isOffline, setIsOffline] = useState(() => (useBackend ? !navigator.onLine : false));
   const [operationError, setOperationError] = useState<string | null>(null);
   const inFlightSyncRef = useRef<Promise<boolean> | null>(null);
+  const currentUserIdRef = useRef<string | null>(localStorage.getItem('userId'));
 
   const clearOperationError = () => {
     setOperationError(null);
@@ -192,7 +193,7 @@ export function useAppState(options?: UseAppStateOptions) {
     setMovieLogs((prev) =>
       prev.map((log) => {
         if (log.id === movieId) {
-          return { ...log, ...updatedMovieData };
+          return {...log, ...updatedMovieData};
         }
 
         return log;
@@ -230,7 +231,7 @@ export function useAppState(options?: UseAppStateOptions) {
     setCustomLists((prev) =>
       prev.map((list) => {
         if (list.id === listId && !list.movieIds.includes(movieId)) {
-          return { ...list, movieIds: [...list.movieIds, movieId] };
+          return {...list, movieIds: [...list.movieIds, movieId]};
         }
 
         return list;
@@ -242,7 +243,7 @@ export function useAppState(options?: UseAppStateOptions) {
     setCustomLists((prev) =>
       prev.map((list) => {
         if (list.id === listId) {
-          return { ...list, movieIds: list.movieIds.filter((id) => id !== movieId) };
+          return {...list, movieIds: list.movieIds.filter((id) => id !== movieId)};
         }
 
         return list;
@@ -421,6 +422,30 @@ export function useAppState(options?: UseAppStateOptions) {
       return;
     }
 
+    const handleUserIdChanged = () => {
+      // User has changed - clear all state to prevent flicker of old user's data
+      const userId = localStorage.getItem('userId');
+      currentUserIdRef.current = userId;
+      setMovieLogs([]);
+      setCustomLists([]);
+      setPendingOperations([]);
+      setIsOffline(!navigator.onLine);
+      clearOperationError();
+    };
+
+    // Listen for user ID changes
+    window.addEventListener('userIdChanged', handleUserIdChanged);
+
+    return () => {
+      window.removeEventListener('userIdChanged', handleUserIdChanged);
+    };
+  }, [useBackend]);
+
+  useEffect(() => {
+    if (!useBackend) {
+      return;
+    }
+
 
     const queuedOperationsAtMount = readPersistedValue<PendingOperation[]>(OFFLINE_QUEUE_KEY, []);
 
@@ -514,7 +539,7 @@ export function useAppState(options?: UseAppStateOptions) {
         if (shouldQueueOperation(error)) {
           const tempId = crypto.randomUUID();
           applyLocalAddMovie(newMovie, tempId);
-          enqueueOperation({ type: 'createMovie', tempId, movie: newMovie });
+          enqueueOperation({type: 'createMovie', tempId, movie: newMovie});
           setIsOffline(true);
           return true;
         }
@@ -527,7 +552,7 @@ export function useAppState(options?: UseAppStateOptions) {
     const tempId = crypto.randomUUID();
     applyLocalAddMovie(newMovie, tempId);
     if (useBackend) {
-      enqueueOperation({ type: 'createMovie', tempId, movie: newMovie });
+      enqueueOperation({type: 'createMovie', tempId, movie: newMovie});
       setIsOffline(true);
     }
     return true;
@@ -544,7 +569,7 @@ export function useAppState(options?: UseAppStateOptions) {
       } catch (error: unknown) {
         if (shouldQueueOperation(error)) {
           applyLocalUpdateMovie(movieId, updatedMovieData);
-          enqueueOperation({ type: 'updateMovie', movieId, movie: updatedMovieData });
+          enqueueOperation({type: 'updateMovie', movieId, movie: updatedMovieData});
           setIsOffline(true);
           return true;
         }
@@ -556,7 +581,7 @@ export function useAppState(options?: UseAppStateOptions) {
 
     applyLocalUpdateMovie(movieId, updatedMovieData);
     if (useBackend) {
-      enqueueOperation({ type: 'updateMovie', movieId, movie: updatedMovieData });
+      enqueueOperation({type: 'updateMovie', movieId, movie: updatedMovieData});
       setIsOffline(true);
     }
     return true;
@@ -573,7 +598,7 @@ export function useAppState(options?: UseAppStateOptions) {
       } catch (error: unknown) {
         if (shouldQueueOperation(error)) {
           applyLocalDeleteMovie(movieId);
-          enqueueOperation({ type: 'deleteMovie', movieId });
+          enqueueOperation({type: 'deleteMovie', movieId});
           setIsOffline(true);
           return true;
         }
@@ -585,7 +610,7 @@ export function useAppState(options?: UseAppStateOptions) {
 
     applyLocalDeleteMovie(movieId);
     if (useBackend) {
-      enqueueOperation({ type: 'deleteMovie', movieId });
+      enqueueOperation({type: 'deleteMovie', movieId});
       setIsOffline(true);
     }
     return true;
@@ -603,7 +628,7 @@ export function useAppState(options?: UseAppStateOptions) {
         if (shouldQueueOperation(error)) {
           const tempId = crypto.randomUUID();
           applyLocalCreateList(name, description, tempId);
-          enqueueOperation({ type: 'createList', tempId, name, description });
+          enqueueOperation({type: 'createList', tempId, name, description});
           setIsOffline(true);
           return true;
         }
@@ -616,7 +641,7 @@ export function useAppState(options?: UseAppStateOptions) {
     const tempId = crypto.randomUUID();
     applyLocalCreateList(name, description, tempId);
     if (useBackend) {
-      enqueueOperation({ type: 'createList', tempId, name, description });
+      enqueueOperation({type: 'createList', tempId, name, description});
       setIsOffline(true);
     }
     return true;
@@ -633,7 +658,7 @@ export function useAppState(options?: UseAppStateOptions) {
       } catch (error: unknown) {
         if (shouldQueueOperation(error)) {
           applyLocalDeleteList(listId);
-          enqueueOperation({ type: 'deleteList', listId });
+          enqueueOperation({type: 'deleteList', listId});
           setIsOffline(true);
           return true;
         }
@@ -645,7 +670,7 @@ export function useAppState(options?: UseAppStateOptions) {
 
     applyLocalDeleteList(listId);
     if (useBackend) {
-      enqueueOperation({ type: 'deleteList', listId });
+      enqueueOperation({type: 'deleteList', listId});
       setIsOffline(true);
     }
     return true;
@@ -662,7 +687,7 @@ export function useAppState(options?: UseAppStateOptions) {
       } catch (error: unknown) {
         if (shouldQueueOperation(error)) {
           applyLocalAddMovieToList(listId, movieId);
-          enqueueOperation({ type: 'addMovieToList', listId, movieId });
+          enqueueOperation({type: 'addMovieToList', listId, movieId});
           setIsOffline(true);
           return true;
         }
@@ -674,7 +699,7 @@ export function useAppState(options?: UseAppStateOptions) {
 
     applyLocalAddMovieToList(listId, movieId);
     if (useBackend) {
-      enqueueOperation({ type: 'addMovieToList', listId, movieId });
+      enqueueOperation({type: 'addMovieToList', listId, movieId});
       setIsOffline(true);
     }
     return true;
@@ -691,7 +716,7 @@ export function useAppState(options?: UseAppStateOptions) {
       } catch (error: unknown) {
         if (shouldQueueOperation(error)) {
           applyLocalRemoveMovieFromList(listId, movieId);
-          enqueueOperation({ type: 'removeMovieFromList', listId, movieId });
+          enqueueOperation({type: 'removeMovieFromList', listId, movieId});
           setIsOffline(true);
           return true;
         }
@@ -703,7 +728,7 @@ export function useAppState(options?: UseAppStateOptions) {
 
     applyLocalRemoveMovieFromList(listId, movieId);
     if (useBackend) {
-      enqueueOperation({ type: 'removeMovieFromList', listId, movieId });
+      enqueueOperation({type: 'removeMovieFromList', listId, movieId});
       setIsOffline(true);
     }
     return true;
@@ -731,7 +756,7 @@ export function useAppState(options?: UseAppStateOptions) {
       } catch (error: unknown) {
         if (shouldQueueOperation(error)) {
           applyLocalAddFrame(movieId, frameData);
-          enqueueOperation({ type: 'addFrame', movieId, frame: frameData });
+          enqueueOperation({type: 'addFrame', movieId, frame: frameData});
           setIsOffline(true);
           return true;
         }
@@ -743,7 +768,7 @@ export function useAppState(options?: UseAppStateOptions) {
 
     applyLocalAddFrame(movieId, frameData);
     if (useBackend) {
-      enqueueOperation({ type: 'addFrame', movieId, frame: frameData });
+      enqueueOperation({type: 'addFrame', movieId, frame: frameData});
       setIsOffline(true);
     }
     return true;
@@ -760,7 +785,7 @@ export function useAppState(options?: UseAppStateOptions) {
       } catch (error: unknown) {
         if (shouldQueueOperation(error)) {
           applyLocalDeleteFrame(movieId, frameId);
-          enqueueOperation({ type: 'deleteFrame', movieId, frameId });
+          enqueueOperation({type: 'deleteFrame', movieId, frameId});
           setIsOffline(true);
           return true;
         }
@@ -772,7 +797,7 @@ export function useAppState(options?: UseAppStateOptions) {
 
     applyLocalDeleteFrame(movieId, frameId);
     if (useBackend) {
-      enqueueOperation({ type: 'deleteFrame', movieId, frameId });
+      enqueueOperation({type: 'deleteFrame', movieId, frameId});
       setIsOffline(true);
     }
     return true;

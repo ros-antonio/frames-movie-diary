@@ -108,10 +108,11 @@ describe('App', () => {
     expect(screen.getByText('Second Title')).toBeInTheDocument();
   });
 
-  it('redirects to diary when editing a movie that does not exist', () => {
+  it('redirects to diary when editing a movie that does not exist', async () => {
     renderApp(['/diary/non-existent-id/edit']);
 
-    expect(screen.getByRole('heading', { name: 'Movie Diary' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Movie Diary' })).toBeInTheDocument();
+
     expect(screen.queryByRole('heading', { name: 'Edit Movie' })).not.toBeInTheDocument();
   });
 });

@@ -47,6 +47,7 @@ export function isOfflineLikeError(error: unknown): boolean {
 
 export interface MovieDiaryApi {
   getMoviesPage(page: number, pageSize?: number): Promise<PaginatedResponse<MovieLog>>;
+  getMovie(movieId: string): Promise<MovieLog>;
   getAllMovies(): Promise<MovieLog[]>;
   createMovie(movie: MovieInput): Promise<MovieLog>;
   updateMovie(movieId: string, movie: MovieInput): Promise<MovieLog>;
@@ -68,12 +69,23 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
+    // 1. Grab the user ID from local storage
+    const userId = localStorage.getItem('userId');
+
+    // 2. Prepare the headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(init?.headers as Record<string, string> ?? {}),
+    };
+
+    // 3. Attach the VIP badge!
+    if (userId) {
+      headers['X-User-Id'] = userId;
+    }
+
     response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(init?.headers ?? {}),
-      },
       ...init,
+      headers, // Use our newly constructed headers
     });
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -151,6 +163,10 @@ export const movieDiaryApi: MovieDiaryApi = {
 
   getAllMovies() {
     return getAllPages<MovieLog>('/movies');
+  },
+
+  getMovie(movieId: string) {
+    return request<MovieLog>(`/movies/${movieId}`);
   },
 
   createMovie(movie: MovieInput) {

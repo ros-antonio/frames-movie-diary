@@ -61,10 +61,23 @@ export function useLoginPage(options?: UseLoginPageOptions) {
     }
 
     try {
-      await login({
+      // Capture the returned user object
+      const user = await login({
         email: trimmedEmail,
         password,
       });
+
+      // Save the ID here too!
+      localStorage.setItem('userId', user.id);
+
+      // Clear old cached data since it belongs to a different user
+      localStorage.removeItem('movie-diary.movies-cache.v1');
+      localStorage.removeItem('movie-diary.lists-cache.v1');
+      localStorage.removeItem('movie-diary.offline-queue.v1');
+
+      // Dispatch custom event to notify app of user change
+      window.dispatchEvent(new CustomEvent('userIdChanged', { detail: { userId: user.id } }));
+
       navigate('/diary');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Sign in failed';

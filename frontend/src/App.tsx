@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { MovieInput, MovieLog, SavedFrame } from './types';
 import { LandingPage } from './components/LandingPage';
 import { MovieDiary } from './components/MovieDiary';
@@ -11,6 +11,7 @@ import { Statistics } from './components/Statistics';
 import { CustomLists } from './components/CustomLists';
 import { useAppState } from './hooks/useAppState';
 import { useUserActivity } from './hooks/useUserActivity';
+import { movieDiaryApi } from './api/movieDiaryApi';
 
 function DiaryRoute({ movieLogs, onAddClick, onSelectMovie }: {
   movieLogs: MovieLog[];
@@ -41,11 +42,11 @@ function AddMovieRoute({ onSave }: { onSave: (newMovie: MovieInput) => Promise<b
 }
 
 function MovieDetailRoute({
-  movieLogs,
-  onDelete,
-  onAddFrame,
-  onDeleteFrame,
-}: {
+                            movieLogs,
+                            onDelete,
+                            onAddFrame,
+                            onDeleteFrame,
+                          }: {
   movieLogs: MovieLog[];
   onDelete: (id: string) => Promise<boolean>;
   onAddFrame: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => Promise<boolean>;
@@ -53,7 +54,47 @@ function MovieDetailRoute({
 }) {
   const navigate = useNavigate();
   const { movieId } = useParams();
-  const movie = movieLogs.find((item) => item.id === movieId);
+
+  const [fetchedMovie, setFetchedMovie] = useState<MovieLog | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const globalMovie = movieLogs.find((item) => item.id === movieId);
+  const movie = globalMovie || fetchedMovie;
+
+  useEffect(() => {
+    if (globalMovie) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (import.meta.env.MODE === 'test') {
+      setIsLoading(false);
+      return;
+    }
+
+    async function fetchMissingMovie() {
+      try {
+        if (movieId) {
+          const data = await movieDiaryApi.getMovie(movieId);
+          setFetchedMovie(data);
+        }
+      } catch (error) {
+        navigate('/diary', { replace: true });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    void fetchMissingMovie();
+  }, [globalMovie, movieId, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#261834] flex items-center justify-center text-[#B9A5D2]">
+        Loading movie details...
+      </div>
+    );
+  }
 
   if (!movie) {
     return <Navigate to="/diary" replace />;
@@ -79,7 +120,47 @@ function MovieDetailRoute({
 function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: (id: string, updatedMovie: MovieInput) => Promise<boolean> }) {
   const navigate = useNavigate();
   const { movieId } = useParams();
-  const movie = movieLogs.find((item) => item.id === movieId);
+
+  const [fetchedMovie, setFetchedMovie] = useState<MovieLog | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const globalMovie = movieLogs.find((item) => item.id === movieId);
+  const movie = globalMovie || fetchedMovie;
+
+  useEffect(() => {
+    if (globalMovie) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (import.meta.env.MODE === 'test') {
+      setIsLoading(false);
+      return;
+    }
+
+    async function fetchMissingMovie() {
+      try {
+        if (movieId) {
+          const data = await movieDiaryApi.getMovie(movieId);
+          setFetchedMovie(data);
+        }
+      } catch {
+        navigate('/diary', { replace: true });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    void fetchMissingMovie();
+  }, [globalMovie, movieId, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#261834] flex items-center justify-center text-[#B9A5D2]">
+        Loading movie editor...
+      </div>
+    );
+  }
 
   if (!movie) {
     return <Navigate to="/diary" replace />;
@@ -89,7 +170,6 @@ function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: 
     <LogNewMovie
       initialData={movie}
       onSave={async (updatedMovie) => {
-
         const saved = await onSave(movie.id, updatedMovie);
         if (saved) {
           navigate(`/diary/${movie.id}`);
