@@ -3,9 +3,9 @@ import { statisticsService } from '../services/statisticsService.js';
 
 const statisticsRoutes = Router();
 
-statisticsRoutes.get('/overview', async (_req, res, next) => {
+statisticsRoutes.get('/overview', async (req, res, next) => {
   try {
-    res.status(200).json(await statisticsService.getOverview());
+    res.status(200).json(await statisticsService.getOverview(req.userId!));
   } catch (error) {
     next(error);
   }

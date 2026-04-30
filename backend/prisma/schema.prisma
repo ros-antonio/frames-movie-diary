@@ -8,8 +8,8 @@ datasource db {
 }
 
 model User {
-  id           String @id @default(uuid())
-  email        String @unique
+  id           String       @id @default(uuid())
+  email        String       @unique
   name         String
   passwordHash String
   movies       Movie[]
@@ -17,14 +17,14 @@ model User {
 }
 
 model Movie {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   movieName   String
   watchDate   DateTime
   rating      Float?
   review      String?
   movieLink   String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId      String?
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
   frames      Frame[]
   listEntries ListMovie[]
 }
@@ -42,8 +42,8 @@ model CustomList {
   id          String      @id @default(uuid())
   name        String
   description String      @default("")
-  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId      String?
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
   entries     ListMovie[]
 }
 
@@ -56,5 +56,3 @@ model ListMovie {
 
   @@unique([listId, movieId])
 }
-
-

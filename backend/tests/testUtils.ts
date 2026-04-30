@@ -4,6 +4,9 @@ import { prisma } from '../src/repositories/prismaClient.js';
 
 export const app = createApp();
 
+// Default test user ID for integration tests
+export const TEST_USER_ID = 'test-user-123';
+
 export async function resetStore(): Promise<void> {
   // Acquire a Postgres advisory lock so concurrent test workers don't
   // deadlock when truncating tables. Use try/finally to ensure the lock
@@ -13,6 +16,17 @@ export async function resetStore(): Promise<void> {
     // Use a single TRUNCATE with CASCADE to reliably clear all tables.
     // This avoids potential foreign-key ordering issues and is faster.
     await prisma.$executeRawUnsafe('TRUNCATE TABLE "ListMovie", "Frame", "CustomList", "Movie", "User" CASCADE');
+
+    // Seed the dummy user so that Foreign Key constraints pass for lists and movies!
+    await prisma.user.create({
+      data: {
+        id: TEST_USER_ID,
+        email: 'testuser@example.com',
+        name: 'Integration Test User',
+        passwordHash: 'dummy-hash',
+      }
+    });
+
   } finally {
     await prisma.$executeRawUnsafe('SELECT pg_advisory_unlock(123456789)');
   }
@@ -27,7 +41,7 @@ export async function createMovie(overrides?: Record<string, unknown>) {
     ...overrides,
   };
 
-  return request(app).post('/api/movies').send(payload);
+  return request(app).post('/api/movies').set('X-User-Id', TEST_USER_ID).send(payload);
 }
 
 export async function createList(overrides?: Record<string, unknown>) {
@@ -37,5 +51,5 @@ export async function createList(overrides?: Record<string, unknown>) {
     ...overrides,
   };
 
-  return request(app).post('/api/lists').send(payload);
+  return request(app).post('/api/lists').set('X-User-Id', TEST_USER_ID).send(payload);
 }
