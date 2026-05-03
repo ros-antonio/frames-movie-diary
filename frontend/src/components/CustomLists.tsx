@@ -14,13 +14,13 @@ interface CustomListsProps {
 }
 
 export function CustomLists({
-  movieLogs,
-  customLists,
-  onCreateList,
-  onDeleteList,
-  onAddMovieToList,
-  onRemoveMovieFromList,
-}: CustomListsProps) {
+                              movieLogs,
+                              customLists,
+                              onCreateList,
+                              onDeleteList,
+                              onAddMovieToList,
+                              onRemoveMovieFromList,
+                            }: CustomListsProps) {
   const {
     showCreateForm,
     newListName,
@@ -124,58 +124,58 @@ export function CustomLists({
           <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#223662' }}>
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(185, 165, 210, 0.2)' }}>
-                  <th className="p-4 font-semibold" style={{ color: '#B9A5D2' }}>
-                    List Name
-                  </th>
-                  <th className="p-4 font-semibold" style={{ color: '#B9A5D2' }}>
-                    Description
-                  </th>
-                  <th className="p-4 font-semibold" style={{ color: '#B9A5D2' }}>
-                    Movies
-                  </th>
-                  <th className="p-4 font-semibold text-right" style={{ color: '#B9A5D2' }}>
-                    Actions
-                  </th>
-                </tr>
+              <tr style={{ borderBottom: '1px solid rgba(185, 165, 210, 0.2)' }}>
+                <th className="p-4 font-semibold" style={{ color: '#B9A5D2' }}>
+                  List Name
+                </th>
+                <th className="p-4 font-semibold" style={{ color: '#B9A5D2' }}>
+                  Description
+                </th>
+                <th className="p-4 font-semibold" style={{ color: '#B9A5D2' }}>
+                  Movies
+                </th>
+                <th className="p-4 font-semibold text-right" style={{ color: '#B9A5D2' }}>
+                  Actions
+                </th>
+              </tr>
               </thead>
               <tbody>
-                {customLists.map((list) => (
-                  <tr
-                    key={list.id}
-                    style={{ borderBottom: '1px solid rgba(185, 165, 210, 0.2)' }}
-                    className="hover:bg-[#1a1f3a] transition-colors"
-                  >
-                    <td className="p-4" style={{ color: '#B9A5D2' }}>
-                      {list.name}
-                    </td>
-                    <td className="p-4 opacity-80" style={{ color: '#B9A5D2' }}>
-                      {list.description}
-                    </td>
-                    <td className="p-4" style={{ color: '#E0BAAA' }}>
-                      {list.movieIds.length}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => toggleViewList(list.id)}
-                          className="flex items-center px-3 py-2 rounded-md font-semibold hover:opacity-90 transition-opacity"
-                          style={{ backgroundColor: '#E0BAAA', color: '#261834' }}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </button>
-                        <button
-                          onClick={() => onDeleteList(list.id)}
-                          className="flex items-center px-3 py-2 rounded-md font-semibold hover:opacity-90 transition-opacity"
-                          style={{ backgroundColor: '#ff6b6b', color: '#fff' }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+              {customLists.map((list) => (
+                <tr
+                  key={list.id}
+                  style={{ borderBottom: '1px solid rgba(185, 165, 210, 0.2)' }}
+                  className="hover:bg-[#1a1f3a] transition-colors"
+                >
+                  <td className="p-4" style={{ color: '#B9A5D2' }}>
+                    {list.name}
+                  </td>
+                  <td className="p-4 opacity-80" style={{ color: '#B9A5D2' }}>
+                    {list.description}
+                  </td>
+                  <td className="p-4" style={{ color: '#E0BAAA' }}>
+                    {list.movieIds.length}
+                  </td>
+                  <td className="p-4 text-right">
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => toggleViewList(list.id)}
+                        className="flex items-center px-3 py-2 rounded-md font-semibold hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: '#E0BAAA', color: '#261834' }}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => onDeleteList(list.id)}
+                        className="flex items-center px-3 py-2 rounded-md font-semibold hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: '#ff6b6b', color: '#fff' }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
               </tbody>
             </table>
           </div>
@@ -273,4 +273,3 @@ export function CustomLists({
     </div>
   );
 }
-

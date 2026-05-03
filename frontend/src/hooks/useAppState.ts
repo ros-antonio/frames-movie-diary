@@ -141,84 +141,55 @@ export function useAppState(options?: UseAppStateOptions) {
   const useBackend = options?.forceBackend ?? import.meta.env.MODE !== 'test';
   const shouldHydrateCacheAtStartup = useBackend && !navigator.onLine;
   const deferInitialMovieBootstrap = useBackend && options?.forceBackend !== true && shouldHydrateCacheAtStartup;
-  const [movieLogs, setMovieLogs] = useState<MovieLog[]>(() => {
-    if (!useBackend) {
-      return [];
-    }
 
-    const cachedMovies = shouldHydrateCacheAtStartup
-      ? readPersistedValue<MovieLog[]>(MOVIES_CACHE_KEY, [])
-      : [];
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => localStorage.getItem('userId'));
+
+  const [movieLogs, setMovieLogs] = useState<MovieLog[]>(() => {
+    if (!useBackend) return [];
+    const cachedMovies = shouldHydrateCacheAtStartup ? readPersistedValue<MovieLog[]>(MOVIES_CACHE_KEY, []) : [];
     const queuedOperations = readPersistedValue<PendingOperation[]>(OFFLINE_QUEUE_KEY, []);
     return reconcileMoviesWithPendingOperations(cachedMovies, queuedOperations);
   });
+
   const [customLists, setCustomLists] = useState<CustomList[]>(() =>
-    (useBackend && shouldHydrateCacheAtStartup
-      ? readPersistedValue<CustomList[]>(LISTS_CACHE_KEY, [])
-      : []),
+    useBackend && shouldHydrateCacheAtStartup ? readPersistedValue<CustomList[]>(LISTS_CACHE_KEY, []) : []
   );
+
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>(() =>
-    (useBackend ? readPersistedValue<PendingOperation[]>(OFFLINE_QUEUE_KEY, []) : []),
+    useBackend ? readPersistedValue<PendingOperation[]>(OFFLINE_QUEUE_KEY, []) : []
   );
+
   const [isOffline, setIsOffline] = useState(() => (useBackend ? !navigator.onLine : false));
   const [operationError, setOperationError] = useState<string | null>(null);
   const inFlightSyncRef = useRef<Promise<boolean> | null>(null);
-  const currentUserIdRef = useRef<string | null>(localStorage.getItem('userId'));
 
-  const clearOperationError = () => {
-    setOperationError(null);
-  };
+  const clearOperationError = () => setOperationError(null);
 
   const setErrorFromUnknown = (error: unknown, fallbackMessage: string) => {
     if (error instanceof Error && error.message.trim()) {
       setOperationError(error.message);
       return;
     }
-
     setOperationError(fallbackMessage);
   };
 
   const applyLocalAddMovie = useCallback((newMovie: MovieInput, id = crypto.randomUUID()): MovieLog => {
-    const movie: MovieLog = {
-      ...newMovie,
-      id,
-      frames: [],
-    };
-
+    const movie: MovieLog = { ...newMovie, id, frames: [] };
     setMovieLogs((prev) => [movie, ...prev]);
     return movie;
   }, []);
 
   const applyLocalUpdateMovie = useCallback((movieId: string, updatedMovieData: MovieInput) => {
-    setMovieLogs((prev) =>
-      prev.map((log) => {
-        if (log.id === movieId) {
-          return {...log, ...updatedMovieData};
-        }
-
-        return log;
-      }),
-    );
+    setMovieLogs((prev) => prev.map((log) => log.id === movieId ? {...log, ...updatedMovieData} : log));
   }, []);
 
   const applyLocalDeleteMovie = useCallback((movieId: string) => {
     setMovieLogs((prev) => prev.filter((movie) => movie.id !== movieId));
-    setCustomLists((prev) =>
-      prev.map((list) => ({
-        ...list,
-        movieIds: list.movieIds.filter((id) => id !== movieId),
-      })),
-    );
+    setCustomLists((prev) => prev.map((list) => ({ ...list, movieIds: list.movieIds.filter((id) => id !== movieId) })));
   }, []);
 
   const applyLocalCreateList = useCallback((name: string, description: string, id = crypto.randomUUID()): CustomList => {
-    const newList: CustomList = {
-      id,
-      name,
-      description,
-      movieIds: [],
-    };
-
+    const newList: CustomList = { id, name, description, movieIds: [] };
     setCustomLists((prev) => [newList, ...prev]);
     return newList;
   }, []);
@@ -229,61 +200,25 @@ export function useAppState(options?: UseAppStateOptions) {
 
   const applyLocalAddMovieToList = useCallback((listId: string, movieId: string) => {
     setCustomLists((prev) =>
-      prev.map((list) => {
-        if (list.id === listId && !list.movieIds.includes(movieId)) {
-          return {...list, movieIds: [...list.movieIds, movieId]};
-        }
-
-        return list;
-      }),
+      prev.map((list) => list.id === listId && !list.movieIds.includes(movieId) ? {...list, movieIds: [...list.movieIds, movieId]} : list)
     );
   }, []);
 
   const applyLocalRemoveMovieFromList = useCallback((listId: string, movieId: string) => {
     setCustomLists((prev) =>
-      prev.map((list) => {
-        if (list.id === listId) {
-          return {...list, movieIds: list.movieIds.filter((id) => id !== movieId)};
-        }
-
-        return list;
-      }),
+      prev.map((list) => list.id === listId ? {...list, movieIds: list.movieIds.filter((id) => id !== movieId)} : list)
     );
   }, []);
 
   const applyLocalAddFrame = useCallback((movieId: string, frameData: Omit<SavedFrame, 'id'>) => {
     setMovieLogs((prev) =>
-      prev.map((movie) => {
-        if (movie.id !== movieId) {
-          return movie;
-        }
-
-        return {
-          ...movie,
-          frames: [
-            {
-              ...frameData,
-              id: crypto.randomUUID(),
-            },
-            ...movie.frames,
-          ],
-        };
-      }),
+      prev.map((movie) => movie.id === movieId ? { ...movie, frames: [{ ...frameData, id: crypto.randomUUID() }, ...movie.frames] } : movie)
     );
   }, []);
 
   const applyLocalDeleteFrame = useCallback((movieId: string, frameId: string) => {
     setMovieLogs((prev) =>
-      prev.map((movie) => {
-        if (movie.id !== movieId) {
-          return movie;
-        }
-
-        return {
-          ...movie,
-          frames: movie.frames.filter((frame) => frame.id !== frameId),
-        };
-      }),
+      prev.map((movie) => movie.id === movieId ? { ...movie, frames: movie.frames.filter((frame) => frame.id !== frameId) } : movie)
     );
   }, []);
 
@@ -293,15 +228,10 @@ export function useAppState(options?: UseAppStateOptions) {
 
   const replayPendingOperations = useCallback(
     (operationsToReplay: PendingOperation[]): Promise<boolean> => {
-      if (inFlightSyncRef.current) {
-        return inFlightSyncRef.current;
-      }
+      if (inFlightSyncRef.current) return inFlightSyncRef.current;
 
       const replayPendingOperationsTask = async (): Promise<boolean> => {
-        if (!useBackend || operationsToReplay.length === 0) {
-          return true;
-        }
-
+        if (!useBackend || operationsToReplay.length === 0) return true;
         if (!navigator.onLine) {
           setIsOffline(true);
           return false;
@@ -357,8 +287,6 @@ export function useAppState(options?: UseAppStateOptions) {
                 await movieDiaryApi.deleteFrame(mapMovieId(operation.movieId), operation.frameId);
                 break;
               }
-              default:
-                break;
             }
 
             remaining.shift();
@@ -400,7 +328,6 @@ export function useAppState(options?: UseAppStateOptions) {
       };
 
       const replayPromise = replayPendingOperationsTask();
-
       inFlightSyncRef.current = replayPromise;
       replayPromise.finally(() => {
         if (inFlightSyncRef.current === replayPromise) {
@@ -418,46 +345,35 @@ export function useAppState(options?: UseAppStateOptions) {
   }, [pendingOperations, replayPendingOperations]);
 
   useEffect(() => {
-    if (!useBackend) {
-      return;
-    }
-
     const handleUserIdChanged = () => {
-      // User has changed - clear all state to prevent flicker of old user's data
-      const userId = localStorage.getItem('userId');
-      currentUserIdRef.current = userId;
-      setMovieLogs([]);
-      setCustomLists([]);
-      setPendingOperations([]);
-      setIsOffline(!navigator.onLine);
-      clearOperationError();
+      setCurrentUserId(localStorage.getItem('userId'));
     };
 
-    // Listen for user ID changes
     window.addEventListener('userIdChanged', handleUserIdChanged);
-
     return () => {
       window.removeEventListener('userIdChanged', handleUserIdChanged);
     };
-  }, [useBackend]);
+  }, []);
 
   useEffect(() => {
-    if (!useBackend) {
+    if (!useBackend) return;
+
+    if (!currentUserId) {
+      setMovieLogs([]);
+      setCustomLists([]);
+      setPendingOperations([]);
+      clearOperationError();
       return;
     }
 
-
     const queuedOperationsAtMount = readPersistedValue<PendingOperation[]>(OFFLINE_QUEUE_KEY, []);
-
 
     const handleOnline = () => {
       setIsOffline(false);
       void replayPendingOperations(readPersistedValue<PendingOperation[]>(OFFLINE_QUEUE_KEY, []));
     };
 
-    const handleOffline = () => {
-      setIsOffline(true);
-    };
+    const handleOffline = () => setIsOffline(true);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -484,7 +400,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return;
         }
-
         setErrorFromUnknown(error, 'Could not load data from the backend.');
       }
     };
@@ -495,37 +410,37 @@ export function useAppState(options?: UseAppStateOptions) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [deferInitialMovieBootstrap, replayPendingOperations, useBackend]);
+  }, [deferInitialMovieBootstrap, replayPendingOperations, useBackend, currentUserId]);
 
   useEffect(() => {
-    if (!useBackend) {
-      return;
-    }
-
+    if (!useBackend) return;
     writeToLocalStorage(MOVIES_CACHE_KEY, trimMoviesCache(movieLogs));
     writeToLocalStorage(LISTS_CACHE_KEY, customLists);
   }, [customLists, movieLogs, useBackend]);
 
   useEffect(() => {
-    if (!useBackend) {
-      return;
-    }
-
+    if (!useBackend) return;
     const trimmedOperations = trimOperationsQueue(pendingOperations);
     writeToLocalStorage(OFFLINE_QUEUE_KEY, trimmedOperations);
   }, [pendingOperations, useBackend]);
 
   const shouldQueueOperation = (error?: unknown) => {
-    if (!useBackend) {
-      return false;
-    }
-
-    if (!navigator.onLine || isOffline) {
-      return true;
-    }
-
+    if (!useBackend) return false;
+    if (!navigator.onLine || isOffline) return true;
     return error !== undefined && isOfflineLikeError(error);
   };
+
+  const refreshLists = useCallback(async () => {
+    if (!useBackend) return;
+    try {
+      const [movies, lists] = await Promise.all([movieDiaryApi.getAllMovies(), movieDiaryApi.getAllLists()]);
+      const queuedOperations = readPersistedValue<PendingOperation[]>(OFFLINE_QUEUE_KEY, []);
+      setMovieLogs(reconcileMoviesWithPendingOperations(movies, queuedOperations));
+      setCustomLists(lists);
+    } catch (error: unknown) {
+      console.error('Failed to refresh custom lists:', error);
+    }
+  }, [useBackend]);
 
   const handleAddMovie = async (newMovie: MovieInput): Promise<boolean> => {
     if (useBackend && !shouldQueueOperation()) {
@@ -543,7 +458,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return true;
         }
-
         setErrorFromUnknown(error, 'Could not add movie.');
         return false;
       }
@@ -573,7 +487,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return true;
         }
-
         setErrorFromUnknown(error, 'Could not update movie.');
         return false;
       }
@@ -602,7 +515,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return true;
         }
-
         setErrorFromUnknown(error, 'Could not delete movie.');
         return false;
       }
@@ -632,7 +544,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return true;
         }
-
         setErrorFromUnknown(error, 'Could not create list.');
         return false;
       }
@@ -662,7 +573,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return true;
         }
-
         setErrorFromUnknown(error, 'Could not delete list.');
         return false;
       }
@@ -676,6 +586,7 @@ export function useAppState(options?: UseAppStateOptions) {
     return true;
   };
 
+  // RESTORED: These now trust your perfectly working backend
   const handleAddMovieToList = async (listId: string, movieId: string): Promise<boolean> => {
     if (useBackend && !shouldQueueOperation()) {
       clearOperationError();
@@ -691,7 +602,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return true;
         }
-
         setErrorFromUnknown(error, 'Could not add movie to list.');
         return false;
       }
@@ -720,7 +630,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return true;
         }
-
         setErrorFromUnknown(error, 'Could not remove movie from list.');
         return false;
       }
@@ -739,18 +648,7 @@ export function useAppState(options?: UseAppStateOptions) {
       clearOperationError();
       try {
         const createdFrame = await movieDiaryApi.addFrame(movieId, frameData);
-        setMovieLogs((prev) =>
-          prev.map((movie) => {
-            if (movie.id !== movieId) {
-              return movie;
-            }
-
-            return {
-              ...movie,
-              frames: [createdFrame, ...movie.frames],
-            };
-          }),
-        );
+        setMovieLogs((prev) => prev.map((movie) => movie.id === movieId ? { ...movie, frames: [createdFrame, ...movie.frames] } : movie));
         setIsOffline(false);
         return true;
       } catch (error: unknown) {
@@ -760,7 +658,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return true;
         }
-
         setErrorFromUnknown(error, 'Could not add frame.');
         return false;
       }
@@ -789,7 +686,6 @@ export function useAppState(options?: UseAppStateOptions) {
           setIsOffline(true);
           return true;
         }
-
         setErrorFromUnknown(error, 'Could not delete frame.');
         return false;
       }
@@ -811,6 +707,7 @@ export function useAppState(options?: UseAppStateOptions) {
     operationError,
     clearOperationError,
     syncPendingOperations,
+    refreshLists,
     handleAddMovie,
     handleUpdateMovie,
     handleDeleteMovie,
@@ -822,4 +719,3 @@ export function useAppState(options?: UseAppStateOptions) {
     handleDeleteFrameFromMovie,
   };
 }
-

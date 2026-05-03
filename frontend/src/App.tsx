@@ -78,7 +78,7 @@ function MovieDetailRoute({
           const data = await movieDiaryApi.getMovie(movieId);
           setFetchedMovie(data);
         }
-      } catch (error) {
+      } catch {
         navigate('/diary', { replace: true });
       } finally {
         setIsLoading(false);
