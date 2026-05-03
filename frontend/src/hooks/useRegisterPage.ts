@@ -85,19 +85,21 @@ export function useRegisterPage(options?: UseRegisterPageOptions) {
     const trimmedEmail = normalizeEmail(email);
 
     if (!useBackend) {
+      localStorage.setItem('userId', 'test-user');
+      localStorage.setItem('userRole', 'USER');
+      window.dispatchEvent(new CustomEvent('userIdChanged', { detail: { userId: 'test-user' } }));
       navigate('/diary');
       return;
     }
 
     try {
-      const { user, token } = await register({
+      const { user } = await register({
         name: trimmedName,
         email: trimmedEmail,
         password,
         confirmPassword,
       });
 
-      localStorage.setItem('token', token);
       localStorage.setItem('userId', user.id);
       localStorage.setItem('userRole', user.role);
 

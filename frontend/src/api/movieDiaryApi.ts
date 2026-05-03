@@ -1,4 +1,4 @@
-import type { AuthUser, CustomList, MovieInput, MovieLog, SavedFrame, StatisticsOverview } from '../types';
+import type { AdminUser, AuthUser, CustomList, MovieInput, MovieLog, SavedFrame, StatisticsOverview } from '../types';
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -67,6 +67,7 @@ export interface MovieDiaryApi {
   register(input: { name: string; email: string; password: string; confirmPassword: string }): Promise<AuthResponse>;
   login(input: { email: string; password: string }): Promise<AuthResponse>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
+  getUsers(): Promise<AdminUser[]>;
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api';
@@ -74,20 +75,15 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    const token = localStorage.getItem('token');
-
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(init?.headers as Record<string, string> ?? {}),
     };
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       headers,
+      credentials: 'include',
     });
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -241,5 +237,9 @@ export const movieDiaryApi: MovieDiaryApi = {
 
   getStatisticsOverview() {
     return request<StatisticsOverview>('/statistics/overview');
+  },
+
+  getUsers() {
+    return request<AdminUser[]>('/users');
   },
 };

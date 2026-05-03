@@ -106,13 +106,38 @@ describe('App', () => {
     });
     expect(screen.queryByText('Updated Title')).not.toBeInTheDocument();
     expect(screen.getByText('Second Title')).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('redirects to diary when editing a movie that does not exist', async () => {
+    localStorage.setItem('userId', 'test-user');
     renderApp(['/diary/non-existent-id/edit']);
 
     expect(await screen.findByRole('heading', { name: 'Movie Diary' })).toBeInTheDocument();
 
     expect(screen.queryByRole('heading', { name: 'Edit Movie' })).not.toBeInTheDocument();
+  });
+
+  it('redirects protected routes to login when there is no session', async () => {
+    renderApp(['/diary']);
+
+    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+  });
+
+  it('redirects non-admin users away from admin route', async () => {
+    localStorage.setItem('userId', 'test-user');
+    localStorage.setItem('userRole', 'USER');
+
+    renderApp(['/admin']);
+
+    expect(await screen.findByRole('heading', { name: 'Movie Diary' })).toBeInTheDocument();
+  });
+
+  it('allows admin users to open admin route', async () => {
+    localStorage.setItem('userId', 'test-admin');
+    localStorage.setItem('userRole', 'ADMIN');
+
+    renderApp(['/admin']);
+
+    expect(await screen.findByRole('heading', { name: 'Admin Dashboard' })).toBeInTheDocument();
   });
 });

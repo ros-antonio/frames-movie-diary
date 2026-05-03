@@ -12,10 +12,10 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "db:seed": "node prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.js"
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^4.14.0",

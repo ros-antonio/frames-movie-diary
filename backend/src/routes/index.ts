@@ -3,6 +3,7 @@ import { movieRoutes } from './movieRoutes.js';
 import { listRoutes } from './listRoutes.js';
 import { statisticsRoutes } from './statisticsRoutes.js';
 import { authRoutes } from './authRoutes.js';
+import { userRoutes } from './userRoutes.js';
 
 const apiRoutes = Router();
 
@@ -13,6 +14,7 @@ apiRoutes.get('/health', (_req, res) => {
 apiRoutes.use('/movies', movieRoutes);
 apiRoutes.use('/lists', listRoutes);
 apiRoutes.use('/statistics', statisticsRoutes);
+apiRoutes.use('/users', userRoutes);
 apiRoutes.use('/auth', authRoutes);
 
 export { apiRoutes };

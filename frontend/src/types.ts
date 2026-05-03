@@ -37,6 +37,16 @@ export interface AuthUser {
     role: string;
 }
 
+export interface AdminUser {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    permissions: string[];
+    movieCount: number;
+    listCount: number;
+}
+
 export interface UserPreference {
     viewMode: 'table' | 'card';
     sortBy: 'movieName' | 'watchDate' | 'none';

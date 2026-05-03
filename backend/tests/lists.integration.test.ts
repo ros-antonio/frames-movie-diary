@@ -1,6 +1,6 @@
 import request from 'supertest';
 import {beforeEach, describe, expect, it} from 'vitest';
-import {app, createList, createMovie, resetStore, TEST_USER_ID} from './testUtils.js';
+import {app, createList, createMovie, resetStore, authHeader} from './testUtils.js';
 
 describe('lists API', () => {
   beforeEach(async () => {
@@ -16,7 +16,7 @@ describe('lists API', () => {
 
     const fetched = await request(app)
       .get(`/api/lists/${created.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(fetched.status).toBe(200);
     expect(fetched.body.name).toBe('Favorites');
   });
@@ -24,7 +24,7 @@ describe('lists API', () => {
   it('rejects invalid list payload', async () => {
     const response = await request(app)
       .post('/api/lists')
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         name: '',
         description: 'x',
@@ -41,10 +41,10 @@ describe('lists API', () => {
 
     const page1 = await request(app)
       .get('/api/lists?page=1&pageSize=2')
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     const page2 = await request(app)
       .get('/api/lists?page=2&pageSize=2')
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
 
     expect(page1.status).toBe(200);
     expect(page1.body.data).toHaveLength(2);
@@ -59,13 +59,13 @@ describe('lists API', () => {
 
     const added = await request(app)
       .post(`/api/lists/${list.body.id}/movies/${movie.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(added.status).toBe(200);
     expect(added.body.movieIds).toEqual([movie.body.id]);
 
     const removed = await request(app)
       .delete(`/api/lists/${list.body.id}/movies/${movie.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(removed.status).toBe(200);
     expect(removed.body.movieIds).toEqual([]);
   });
@@ -76,12 +76,12 @@ describe('lists API', () => {
 
     const firstAdd = await request(app)
       .post(`/api/lists/${list.body.id}/movies/${movie.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(firstAdd.status).toBe(200);
 
     const secondAdd = await request(app)
       .post(`/api/lists/${list.body.id}/movies/${movie.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(secondAdd.status).toBe(409);
     expect(secondAdd.body.message).toBe('Movie already in list');
   });
@@ -92,7 +92,7 @@ describe('lists API', () => {
 
     const response = await request(app)
       .post(`/api/lists/${list.body.id}/movies/${missingMovieId}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
 
     expect(response.status).toBe(404);
     expect(response.body.message).toBe('Movie not found');
@@ -104,7 +104,7 @@ describe('lists API', () => {
 
     const response = await request(app)
       .delete(`/api/lists/${list.body.id}/movies/${movie.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
 
     expect(response.status).toBe(404);
     expect(response.body.message).toBe('Movie not in list');
@@ -115,7 +115,7 @@ describe('lists API', () => {
 
     const updated = await request(app)
       .put(`/api/lists/${list.body.id}`)
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         name: 'Watch Later',
         description: 'Queued',
@@ -126,19 +126,19 @@ describe('lists API', () => {
 
     const deleted = await request(app)
       .delete(`/api/lists/${list.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(deleted.status).toBe(204);
 
     const missing = await request(app)
       .get(`/api/lists/${list.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(missing.status).toBe(404);
   });
 
   it('returns 404 when fetching a missing list', async () => {
     const response = await request(app)
       .get('/api/lists/00000000-0000-4000-8000-000000000001')
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
 
     expect(response.status).toBe(404);
   });
@@ -146,7 +146,7 @@ describe('lists API', () => {
   it('returns 404 when updating a missing list', async () => {
     const response = await request(app)
       .put('/api/lists/00000000-0000-4000-8000-000000000001')
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         name: 'Missing',
         description: 'Does not exist',
@@ -158,7 +158,7 @@ describe('lists API', () => {
   it('returns 404 when deleting a missing list', async () => {
     const response = await request(app)
       .delete('/api/lists/00000000-0000-4000-8000-000000000001')
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
 
     expect(response.status).toBe(404);
   });
@@ -166,7 +166,7 @@ describe('lists API', () => {
   it('returns 400 when creating a list with a non-existent user ID (P2003)', async () => {
     const response = await request(app)
       .post('/api/lists')
-      .set('X-User-Id', 'ghost-user-id-123')
+      .set(authHeader('ghost-user-id-123'))
       .send({
         name: 'Ghost List',
         description: 'Spooky',

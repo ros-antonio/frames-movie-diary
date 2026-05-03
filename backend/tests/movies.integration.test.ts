@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { app, createList, createMovie, resetStore, TEST_USER_ID } from './testUtils.js';
+import { app, createList, createMovie, resetStore, authHeader } from './testUtils.js';
 
 describe('movies API', () => {
   beforeEach(async () => {
@@ -16,7 +16,7 @@ describe('movies API', () => {
 
     const fetched = await request(app)
       .get(`/api/movies/${created.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(fetched.status).toBe(200);
     expect(fetched.body.movieName).toBe('Inception');
   });
@@ -24,7 +24,7 @@ describe('movies API', () => {
   it('rejects invalid movie payload', async () => {
     const response = await request(app)
       .post('/api/movies')
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         movieName: '',
         watchDate: '2999-12-31',
@@ -37,7 +37,7 @@ describe('movies API', () => {
   it('rejects watchDate with invalid format and invalid calendar date', async () => {
     const invalidFormat = await request(app)
       .post('/api/movies')
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         movieName: 'Bad Date Format',
         watchDate: '2025/01/10',
@@ -48,7 +48,7 @@ describe('movies API', () => {
 
     const invalidDate = await request(app)
       .post('/api/movies')
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         movieName: 'Bad Date Value',
         watchDate: '2025-13-40',
@@ -65,10 +65,10 @@ describe('movies API', () => {
 
     const page1 = await request(app)
       .get('/api/movies?page=1&pageSize=2')
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     const page2 = await request(app)
       .get('/api/movies?page=2&pageSize=2')
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
 
     expect(page1.status).toBe(200);
     expect(page1.body.data).toHaveLength(2);
@@ -84,7 +84,7 @@ describe('movies API', () => {
 
     const updated = await request(app)
       .put(`/api/movies/${created.body.id}`)
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         movieName: 'Interstellar',
         watchDate: '2025-01-11',
@@ -98,12 +98,12 @@ describe('movies API', () => {
 
     const deleted = await request(app)
       .delete(`/api/movies/${created.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(deleted.status).toBe(204);
 
     const missing = await request(app)
       .get(`/api/movies/${created.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(missing.status).toBe(404);
   });
 
@@ -113,18 +113,18 @@ describe('movies API', () => {
 
     const added = await request(app)
       .post(`/api/lists/${list.body.id}/movies/${movie.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(added.status).toBe(200);
     expect(added.body.movieIds).toEqual([movie.body.id]);
 
     const deleted = await request(app)
       .delete(`/api/movies/${movie.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(deleted.status).toBe(204);
 
     const fetchedList = await request(app)
       .get(`/api/lists/${list.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(fetchedList.status).toBe(200);
     expect(fetchedList.body.movieIds).toEqual([]);
   });
@@ -134,7 +134,7 @@ describe('movies API', () => {
 
     const frame = await request(app)
       .post(`/api/movies/${created.body.id}/frames`)
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         imageUrl: 'data:image/png;base64,abc123',
         timestamp: '01:23:45',
@@ -146,7 +146,7 @@ describe('movies API', () => {
 
     const deleted = await request(app)
       .delete(`/api/movies/${created.body.id}/frames/${frame.body.id}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
     expect(deleted.status).toBe(204);
   });
 
@@ -156,7 +156,7 @@ describe('movies API', () => {
 
     const frame = await request(app)
       .post(`/api/movies/${created.body.id}/frames`)
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         imageUrl: largeDataUrl,
         timestamp: '01:23:45',
@@ -172,7 +172,7 @@ describe('movies API', () => {
 
     const response = await request(app)
       .post(`/api/movies/${created.body.id}/frames`)
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         imageUrl: '',
         timestamp: 'invalid-time',
@@ -189,7 +189,7 @@ describe('movies API', () => {
 
     const response = await request(app)
       .delete(`/api/movies/${created.body.id}/frames/${missingFrameId}`)
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
 
     expect(response.status).toBe(404);
     expect(response.body.message).toBe('Frame not found');
@@ -198,7 +198,7 @@ describe('movies API', () => {
   it('returns 404 when fetching a missing movie', async () => {
     const response = await request(app)
         .get('/api/movies/00000000-0000-4000-8000-000000000001')
-        .set('X-User-Id', TEST_USER_ID);
+        .set(authHeader());
 
     expect(response.status).toBe(404);
   });
@@ -206,7 +206,7 @@ describe('movies API', () => {
   it('returns 404 when updating a missing movie', async () => {
     const response = await request(app)
         .put('/api/movies/00000000-0000-4000-8000-000000000001')
-        .set('X-User-Id', TEST_USER_ID)
+        .set(authHeader())
         .send({
           movieName: 'Missing',
           watchDate: '2025-01-01',
@@ -218,7 +218,7 @@ describe('movies API', () => {
   it('returns 404 when deleting a missing movie', async () => {
     const response = await request(app)
         .delete('/api/movies/00000000-0000-4000-8000-000000000001')
-        .set('X-User-Id', TEST_USER_ID);
+        .set(authHeader());
 
     expect(response.status).toBe(404);
   });
@@ -226,7 +226,7 @@ describe('movies API', () => {
   it('returns 404 when adding a frame to a missing movie', async () => {
     const response = await request(app)
         .post('/api/movies/00000000-0000-4000-8000-000000000001/frames')
-        .set('X-User-Id', TEST_USER_ID)
+        .set(authHeader())
         .send({
           imageUrl: 'data:image/png;base64,abc',
           timestamp: '01:00',
@@ -239,7 +239,7 @@ describe('movies API', () => {
   it('rejects invalid pagination parameters safely', async () => {
     const response = await request(app)
         .get('/api/movies?page=-1&pageSize=500')
-        .set('X-User-Id', TEST_USER_ID);
+        .set(authHeader());
 
     expect(response.status).toBe(400);
   });
@@ -247,7 +247,7 @@ describe('movies API', () => {
   it('returns 400 when creating a movie with a non-existent user ID (P2003)', async () => {
     const response = await request(app)
       .post('/api/movies')
-      .set('X-User-Id', 'ghost-user-id-123')
+      .set(authHeader('ghost-user-id-123'))
       .send({
         movieName: 'Ghost Movie',
         watchDate: '2025-01-01',

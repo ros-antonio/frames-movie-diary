@@ -1,7 +1,8 @@
-import { scryptSync, timingSafeEqual } from 'node:crypto';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { HttpError } from '../utils/httpError.js';
 import { prisma } from '../repositories/prismaClient.js';
+import { config } from '../config.js';
 
 interface RegisterInput {
   name: string;
@@ -31,21 +32,6 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function hashPassword(password: string): string {
-  return scryptSync(password, 'frames-auth-salt', 64).toString('hex');
-}
-
-function passwordsMatch(password: string, hash: string): boolean {
-  const derived = Buffer.from(hashPassword(password), 'hex');
-  const existing = Buffer.from(hash, 'hex');
-
-  if (derived.length !== existing.length) {
-    return false;
-  }
-
-  return timingSafeEqual(derived, existing);
-}
-
 class AuthService {
   async register(input: RegisterInput): Promise<AuthResponse> {
     const email = normalizeEmail(input.email);
@@ -71,7 +57,7 @@ class AuthService {
       data: {
         name: input.name.trim(),
         email,
-        passwordHash: hashPassword(input.password),
+        passwordHash: await bcrypt.hash(input.password, 12),
         roleId: userRole.id,
       },
       include: {
@@ -81,7 +67,7 @@ class AuthService {
 
     const token = jwt.sign(
       { userId: user.id, role: user.role.name },
-      process.env.JWT_SECRET as string,
+      config.jwtSecret,
       { expiresIn: '1d' }
     );
 
@@ -104,13 +90,13 @@ class AuthService {
       include: { role: true },
     });
 
-    if (!user || !passwordsMatch(input.password, user.passwordHash)) {
+    if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) {
       throw new HttpError(401, 'Invalid email or password');
     }
 
     const token = jwt.sign(
       { userId: user.id, role: user.role.name },
-      process.env.JWT_SECRET as string,
+      config.jwtSecret,
       { expiresIn: '1d' }
     );
 

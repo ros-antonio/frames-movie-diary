@@ -143,6 +143,7 @@ export function useAppState(options?: UseAppStateOptions) {
   const deferInitialMovieBootstrap = useBackend && options?.forceBackend !== true && shouldHydrateCacheAtStartup;
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => localStorage.getItem('userId'));
+  const hasActiveSession = Boolean(currentUserId);
 
   const [movieLogs, setMovieLogs] = useState<MovieLog[]>(() => {
     if (!useBackend) return [];
@@ -367,6 +368,11 @@ export function useAppState(options?: UseAppStateOptions) {
     if (!useBackend) return;
 
     if (!currentUserId) {
+      localStorage.removeItem(MOVIES_CACHE_KEY);
+      localStorage.removeItem(LISTS_CACHE_KEY);
+      localStorage.removeItem(OFFLINE_QUEUE_KEY);
+      setPendingOperations([]);
+      setIsOffline(false);
       return;
     }
 
@@ -706,8 +712,8 @@ export function useAppState(options?: UseAppStateOptions) {
   return {
     movieLogs,
     customLists,
-    isOffline,
-    pendingSyncCount: pendingOperations.length,
+    isOffline: hasActiveSession ? isOffline : false,
+    pendingSyncCount: hasActiveSession ? pendingOperations.length : 0,
     operationError,
     clearOperationError,
     syncPendingOperations,

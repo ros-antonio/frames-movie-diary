@@ -7,6 +7,8 @@ playwright-report/
 test-results/
 .env
 .env.*
+!.env.example
+!**/.env.example
 *.local
 npm-debug.log*
 yarn-debug.log*

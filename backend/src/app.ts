@@ -7,7 +7,10 @@ import { authenticate } from './middleware/auth.js';
 export function createApp() {
   const app = express();
 
-  app.use(cors());
+  app.use(cors({
+    origin: true,
+    credentials: true,
+  }));
   app.use(express.json({ limit: '10mb' }));
 
   // Apply auth middleware globally (skips auth endpoints automatically)

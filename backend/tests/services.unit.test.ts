@@ -23,7 +23,7 @@ describe('Service Race Conditions', () => {
 
     // 3. Verify the service catches it and transforms it to an HttpError
     await expect(
-      movieService.update('movie-1', { movieName: 'Test', watchDate: '2025-01-01' }, 'user-1')
+      movieService.update('movie-1', { movieName: 'Test', watchDate: '2025-01-01' }, 'user-1', 'USER')
     ).rejects.toThrowError(new HttpError(404, 'Movie not found'));
   });
 });

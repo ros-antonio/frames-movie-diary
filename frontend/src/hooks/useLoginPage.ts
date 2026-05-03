@@ -56,17 +56,19 @@ export function useLoginPage(options?: UseLoginPageOptions) {
     const trimmedEmail = normalizeEmail(email);
 
     if (!useBackend) {
+      localStorage.setItem('userId', 'test-user');
+      localStorage.setItem('userRole', 'USER');
+      window.dispatchEvent(new CustomEvent('userIdChanged', { detail: { userId: 'test-user' } }));
       navigate('/diary');
       return;
     }
 
     try {
-      const { user, token } = await login({
+      const { user } = await login({
         email: trimmedEmail,
         password,
       });
 
-      localStorage.setItem('token', token);
       localStorage.setItem('userId', user.id);
       localStorage.setItem('userRole', user.role);
 

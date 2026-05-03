@@ -8,12 +8,6 @@
 -- DropForeignKey
 ALTER TABLE "Movie" DROP CONSTRAINT "Movie_userId_fkey";
 
--- AlterTable
-ALTER TABLE "Movie" ALTER COLUMN "userId" SET NOT NULL;
-
--- AlterTable
-ALTER TABLE "User" ADD COLUMN     "roleId" TEXT NOT NULL;
-
 -- CreateTable
 CREATE TABLE "Role" (
     "id" TEXT NOT NULL,
@@ -47,6 +41,23 @@ CREATE UNIQUE INDEX "_PermissionToRole_AB_unique" ON "_PermissionToRole"("A", "B
 
 -- CreateIndex
 CREATE INDEX "_PermissionToRole_B_index" ON "_PermissionToRole"("B");
+
+-- Seed required roles before users reference them.
+INSERT INTO "Role" ("id", "name")
+VALUES ('00000000-0000-4000-8000-000000000101', 'ADMIN'),
+       ('00000000-0000-4000-8000-000000000102', 'USER');
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "roleId" TEXT;
+
+-- Backfill existing users before enforcing NOT NULL.
+UPDATE "User" SET "roleId" = '00000000-0000-4000-8000-000000000102' WHERE "roleId" IS NULL;
+
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "roleId" SET NOT NULL;
+
+-- AlterTable
+ALTER TABLE "Movie" ALTER COLUMN "userId" SET NOT NULL;
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

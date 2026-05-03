@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { HttpError } from '../utils/httpError.js';
+import { config } from '../config.js';
 
 declare global {
   namespace Express {
@@ -26,15 +27,22 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   }
 
   const authHeader = req.headers.authorization;
+  const cookieToken = req.headers.cookie
+    ?.split(';')
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith('frames_auth='))
+    ?.split('=')[1];
 
-  if (!authHeader?.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ') && !cookieToken) {
     throw new HttpError(401, 'Authentication required: Missing or invalid token');
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.split(' ')[1]
+    : decodeURIComponent(cookieToken ?? '');
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string, role: string };
+    const decoded = jwt.verify(token, config.jwtSecret) as { userId: string, role: string };
 
     req.user = decoded;
     next();

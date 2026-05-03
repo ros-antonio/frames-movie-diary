@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { MovieInput, MovieLog, SavedFrame } from './types';
 import { LandingPage } from './components/LandingPage';
 import { MovieDiary } from './components/MovieDiary';
@@ -9,6 +10,7 @@ import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
 import { Statistics } from './components/Statistics';
 import { CustomLists } from './components/CustomLists';
+import { AdminDashboard } from './components/AdminDashboard';
 import { useAppState } from './hooks/useAppState';
 import { useUserActivity } from './hooks/useUserActivity';
 import { movieDiaryApi } from './api/movieDiaryApi';
@@ -18,9 +20,18 @@ function DiaryRoute({ movieLogs, onAddClick, onSelectMovie }: {
   onAddClick: () => void;
   onSelectMovie: (id: string) => void;
 }) {
+  const navigate = useNavigate();
+  const userRole = localStorage.getItem('userRole');
+
   return (
     <div className="min-h-screen bg-[#261834]">
-      <MovieDiary movieLogs={movieLogs} onAddClick={onAddClick} onSelectMovie={onSelectMovie} />
+      <MovieDiary
+        movieLogs={movieLogs}
+        onAddClick={onAddClick}
+        onSelectMovie={onSelectMovie}
+        onAdminClick={() => navigate('/admin')}
+        userRole={userRole}
+      />
     </div>
   );
 }
@@ -39,6 +50,26 @@ function AddMovieRoute({ onSave }: { onSave: (newMovie: MovieInput) => Promise<b
       onCancel={() => navigate('/diary')}
     />
   );
+}
+
+function RequireAuth({ children }: { children: ReactNode }) {
+  if (!localStorage.getItem('userId')) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function RequireAdmin({ children }: { children: ReactNode }) {
+  if (!localStorage.getItem('userId')) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (localStorage.getItem('userRole') !== 'ADMIN') {
+    return <Navigate to="/diary" replace />;
+  }
+
+  return children;
 }
 
 function MovieDetailRoute({
@@ -253,48 +284,62 @@ export default function App() {
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/statistics" element={<Statistics movieLogs={movieLogs} />} />
+        <Route path="/statistics" element={<RequireAuth><Statistics movieLogs={movieLogs} /></RequireAuth>} />
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <AdminDashboard onBack={() => navigate('/diary')} />
+            </RequireAdmin>
+          }
+        />
         <Route
           path="/custom-lists"
           element={
-            <CustomLists
-              movieLogs={movieLogs}
-              customLists={customLists}
-              onCreateList={handleCreateList}
-              onDeleteList={handleDeleteList}
-              onAddMovieToList={handleAddMovieToList}
-              onRemoveMovieFromList={handleRemoveMovieFromList}
-            />
+            <RequireAuth>
+              <CustomLists
+                movieLogs={movieLogs}
+                customLists={customLists}
+                onCreateList={handleCreateList}
+                onDeleteList={handleDeleteList}
+                onAddMovieToList={handleAddMovieToList}
+                onRemoveMovieFromList={handleRemoveMovieFromList}
+              />
+            </RequireAuth>
           }
         />
         <Route
           path="/diary"
           element={
-            <DiaryRoute
-              movieLogs={movieLogs}
-              onAddClick={() => navigate('/diary/new')}
-              onSelectMovie={(id) => {
-                logActivity({ eventType: 'view', movieId: id, pageRoute: '/diary' });
-                navigate(`/diary/${id}`);
-              }}
-            />
+            <RequireAuth>
+              <DiaryRoute
+                movieLogs={movieLogs}
+                onAddClick={() => navigate('/diary/new')}
+                onSelectMovie={(id) => {
+                  logActivity({ eventType: 'view', movieId: id, pageRoute: '/diary' });
+                  navigate(`/diary/${id}`);
+                }}
+              />
+            </RequireAuth>
           }
         />
-        <Route path="/diary/new" element={<AddMovieRoute onSave={handleAddMovie} />} />
+        <Route path="/diary/new" element={<RequireAuth><AddMovieRoute onSave={handleAddMovie} /></RequireAuth>} />
         <Route
           path="/diary/:movieId"
           element={
-            <MovieDetailRoute
-              movieLogs={movieLogs}
-              onDelete={handleDeleteMovie}
-              onAddFrame={handleAddFrameToMovie}
-              onDeleteFrame={handleDeleteFrameFromMovie}
-            />
+            <RequireAuth>
+              <MovieDetailRoute
+                movieLogs={movieLogs}
+                onDelete={handleDeleteMovie}
+                onAddFrame={handleAddFrameToMovie}
+                onDeleteFrame={handleDeleteFrameFromMovie}
+              />
+            </RequireAuth>
           }
         />
         <Route
           path="/diary/:movieId/edit"
-          element={<EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} />}
+          element={<RequireAuth><EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} /></RequireAuth>}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

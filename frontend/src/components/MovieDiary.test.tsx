@@ -32,6 +32,40 @@ describe('MovieDiary', () => {
     expect(onSelectMovie).toHaveBeenCalledWith('1');
   });
 
+  it('shows admin entry only for admin users', async () => {
+    const user = userEvent.setup();
+    const onAdminClick = vi.fn();
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <MovieDiary
+          movieLogs={[movie('1', 'Arrival', '2026-01-01')]}
+          onAddClick={vi.fn()}
+          onSelectMovie={vi.fn()}
+          onAdminClick={onAdminClick}
+          userRole="USER"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button', { name: /Admin/i })).not.toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <MovieDiary
+          movieLogs={[movie('1', 'Arrival', '2026-01-01')]}
+          onAddClick={vi.fn()}
+          onSelectMovie={vi.fn()}
+          onAdminClick={onAdminClick}
+          userRole="ADMIN"
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Admin/i }));
+    expect(onAdminClick).toHaveBeenCalledTimes(1);
+  });
+
   it('sorts movies when clicking the Movie Name header', async () => {
     const user = userEvent.setup();
 

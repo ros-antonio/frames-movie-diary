@@ -17,11 +17,13 @@ describe('auth API', () => {
     });
 
     expect(registerResponse.status).toBe(201);
-    expect(registerResponse.body).toMatchObject({
+    expect(registerResponse.body.user).toMatchObject({
       name: 'Tony Stark',
       email: 'tony@example.com',
+      role: 'USER',
     });
-    expect(registerResponse.body.id).toBeTypeOf('string');
+    expect(registerResponse.body.user.id).toBeTypeOf('string');
+    expect(registerResponse.body.token).toBeTypeOf('string');
 
     const loginResponse = await request(app).post('/api/auth/login').send({
       email: 'TONY@EXAMPLE.COM',
@@ -29,11 +31,13 @@ describe('auth API', () => {
     });
 
     expect(loginResponse.status).toBe(200);
-    expect(loginResponse.body).toMatchObject({
-      id: registerResponse.body.id,
+    expect(loginResponse.body.user).toMatchObject({
+      id: registerResponse.body.user.id,
       name: 'Tony Stark',
       email: 'tony@example.com',
+      role: 'USER',
     });
+    expect(loginResponse.body.token).toBeTypeOf('string');
   });
 
   it('rejects duplicate registration by email', async () => {
@@ -88,7 +92,7 @@ describe('auth API', () => {
       confirmPassword: 'password123',
     });
 
-    const userId = register.body.id as string;
+    const userId = register.body.user.id as string;
     await prisma.user.update({
       where: { id: userId },
       data: { passwordHash: 'abcd' },

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -127,7 +127,7 @@ describe('LoginPage', () => {
     renderLoginPage();
 
     const longEmail = 'a'.repeat(250) + '@example.com';
-    await user.type(screen.getByLabelText('Email'), longEmail);
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: longEmail } });
     await user.type(screen.getByLabelText('Password'), 'password123');
     await user.click(screen.getByRole('button', { name: 'Sign In' }));
 

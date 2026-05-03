@@ -1,4 +1,4 @@
-import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown, ArrowUp } from 'lucide-react';
+import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown, ArrowUp, Shield } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { MovieLog } from '../types';
 import { useMovieDiaryPage } from '../hooks/useMovieDiaryPage';
@@ -7,9 +7,11 @@ interface MovieDiaryProps {
     movieLogs: MovieLog[];
     onAddClick: () => void;
     onSelectMovie: (id: string) => void;
+    onAdminClick?: () => void;
+    userRole?: string | null;
 }
 
-export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryProps) {
+export function MovieDiary({ movieLogs, onAddClick, onSelectMovie, onAdminClick, userRole }: MovieDiaryProps) {
     const {
         viewMode,
         currentMovies,
@@ -80,6 +82,14 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie }: MovieDiaryP
                       <h1 className="text-4xl font-bold" style={{ color: '#B9A5D2' }}>Movie Diary</h1>
                   </div>
                   <div className="flex flex-wrap gap-3">
+                      {userRole === 'ADMIN' && onAdminClick && (
+                        <button
+                          onClick={onAdminClick}
+                          className="flex items-center px-4 py-2 border rounded-md border-[#B9A5D2] text-[#B9A5D2] hover:bg-[#B9A5D2]/10 transition-colors btn-press"
+                        >
+                            <Shield className="w-4 h-4 mr-2" /> Admin
+                        </button>
+                      )}
                       <button
                         onClick={goToStatistics}
                         className="flex items-center px-4 py-2 border rounded-md border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 transition-colors btn-press"

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { app, createMovie, resetStore, TEST_USER_ID } from './testUtils.js';
+import { app, createMovie, resetStore, authHeader } from './testUtils.js';
 
 describe('statistics API', () => {
   beforeEach(async () => {
@@ -21,7 +21,7 @@ describe('statistics API', () => {
 
     await request(app)
       .post(`/api/movies/${movieA.body.id}/frames`)
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         imageUrl: 'data:image/png;base64,one',
         timestamp: '00:10',
@@ -30,7 +30,7 @@ describe('statistics API', () => {
 
     await request(app)
       .post(`/api/movies/${movieB.body.id}/frames`)
-      .set('X-User-Id', TEST_USER_ID)
+      .set(authHeader())
       .send({
         imageUrl: 'data:image/png;base64,two',
         timestamp: '01:10',
@@ -39,7 +39,7 @@ describe('statistics API', () => {
 
     const response = await request(app)
       .get('/api/statistics/overview')
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
 
     expect(response.status).toBe(200);
     expect(response.body.totalMovies).toBe(3);
@@ -56,7 +56,7 @@ describe('statistics API', () => {
 
     const response = await request(app)
       .get('/api/statistics/overview')
-      .set('X-User-Id', TEST_USER_ID);
+      .set(authHeader());
 
     expect(response.status).toBe(200);
     expect(response.body.totalMovies).toBe(2);
