@@ -85,7 +85,7 @@ export function Statistics({ movieLogs }: StatisticsProps) {
         </div>
 
         {/* Chart */}
-        {movieLogs.length > 0 ? (
+        {totalMovies > 0 ? (
           <div className="rounded-lg p-8" style={{ backgroundColor: '#223662' }}>
             <h2 className="text-2xl mb-6" style={{ color: '#B9A5D2' }}>
               Rating Distribution
