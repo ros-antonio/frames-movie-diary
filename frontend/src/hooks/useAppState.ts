@@ -346,7 +346,15 @@ export function useAppState(options?: UseAppStateOptions) {
 
   useEffect(() => {
     const handleUserIdChanged = () => {
-      setCurrentUserId(localStorage.getItem('userId'));
+      const newUserId = localStorage.getItem('userId');
+      setCurrentUserId(newUserId);
+
+      if (!newUserId) {
+        setMovieLogs([]);
+        setCustomLists([]);
+        setPendingOperations([]);
+        setOperationError(null);
+      }
     };
 
     window.addEventListener('userIdChanged', handleUserIdChanged);
@@ -359,10 +367,6 @@ export function useAppState(options?: UseAppStateOptions) {
     if (!useBackend) return;
 
     if (!currentUserId) {
-      setMovieLogs([]);
-      setCustomLists([]);
-      setPendingOperations([]);
-      clearOperationError();
       return;
     }
 
