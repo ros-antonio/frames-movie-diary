@@ -64,28 +64,25 @@ export interface MovieDiaryApi {
   getStatisticsOverview(): Promise<StatisticsOverview>;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:4000/api';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    // 1. Grab the user ID from local storage
     const userId = localStorage.getItem('userId');
 
-    // 2. Prepare the headers
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(init?.headers as Record<string, string> ?? {}),
     };
 
-    // 3. Attach the VIP badge!
     if (userId) {
       headers['X-User-Id'] = userId;
     }
 
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
-      headers, // Use our newly constructed headers
+      headers,
     });
   } catch (error: unknown) {
     if (error instanceof Error) {

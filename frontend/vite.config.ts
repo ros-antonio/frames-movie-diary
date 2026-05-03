@@ -1,9 +1,21 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import mkcert from 'vite-plugin-mkcert'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), mkcert()],
+  server: {
+    host: true,
+    // @ts-expect-error: Vite handles this boolean at runtime with the mkcert plugin
+    https: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+      }
+    }
+  },
   test: {
     environment: 'jsdom',
     globals: true,

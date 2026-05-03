@@ -4,13 +4,15 @@ import { prisma } from '../src/repositories/prismaClient.js';
 
 export const app = createApp();
 
-// Default test user ID for integration tests
 export const TEST_USER_ID = 'test-user-123';
 
 export async function resetStore(): Promise<void> {
+  if (!process.env.DATABASE_URL?.includes('frames_test')) {
+    throw new Error(`STOP: Attempted to run tests against a non-test database! URL: ${process.env.DATABASE_URL}`);
+  }
+
   // Acquire a Postgres advisory lock so concurrent test workers don't
-  // deadlock when truncating tables. Use try/finally to ensure the lock
-  // is released.
+  // deadlock when truncating tables.
   await prisma.$executeRawUnsafe('SELECT pg_advisory_lock(123456789)');
   try {
     // Use a single TRUNCATE with CASCADE to reliably clear all tables.
