@@ -90,23 +90,21 @@ export function useRegisterPage(options?: UseRegisterPageOptions) {
     }
 
     try {
-      // Capture the returned user object
-      const user = await register({
+      const { user, token } = await register({
         name: trimmedName,
         email: trimmedEmail,
         password,
         confirmPassword,
       });
 
-      // Save the ID so the API client can attach it to future requests!
+      localStorage.setItem('token', token);
       localStorage.setItem('userId', user.id);
+      localStorage.setItem('userRole', user.role);
 
-      // Clear old cached data since it belongs to a different user
       localStorage.removeItem('movie-diary.movies-cache.v1');
       localStorage.removeItem('movie-diary.lists-cache.v1');
       localStorage.removeItem('movie-diary.offline-queue.v1');
 
-      // Dispatch custom event to notify app of user change
       window.dispatchEvent(new CustomEvent('userIdChanged', { detail: { userId: user.id } }));
 
       navigate('/diary');
@@ -131,4 +129,3 @@ export function useRegisterPage(options?: UseRegisterPageOptions) {
     goToLogin: () => navigate('/login'),
   };
 }
-

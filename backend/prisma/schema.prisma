@@ -12,8 +12,23 @@ model User {
   email        String       @unique
   name         String
   passwordHash String
+  roleId       String
+  role         Role         @relation(fields: [roleId], references: [id])
   movies       Movie[]
   lists        CustomList[]
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  users       User[]
+  permissions Permission[]
+}
+
+model Permission {
+  id    String @id @default(uuid())
+  name  String @unique
+  roles Role[]
 }
 
 model Movie {

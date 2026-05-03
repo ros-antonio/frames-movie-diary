@@ -1,34 +1,62 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { HttpError } from '../utils/httpError.js';
 
 declare global {
   namespace Express {
     interface Request {
-      userId?: string;
+      user?: {
+        userId: string;
+        role: string;
+      };
     }
   }
 }
 
 /**
- * Auth middleware to extract user ID from request.
- * In a production app, this would verify JWT tokens.
- * For now, it extracts userId from X-User-Id header (used in tests and development).
+ * Authenticate middleware to verify JWT tokens.
+ * Extracts the token from the Authorization header and attaches the user payload.
  * Skips public endpoints (/api/health and /api/auth/*).
  */
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+export function authenticate(req: Request, res: Response, next: NextFunction) {
   const isPublicRoute = req.originalUrl === '/api/health' || req.originalUrl.startsWith('/api/auth');
 
   if (isPublicRoute) {
     return next();
   }
 
-  const userId = req.headers['x-user-id'] as string;
+  const authHeader = req.headers.authorization;
 
-  if (!userId) {
-    throw new HttpError(401, 'User ID is required');
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new HttpError(401, 'Authentication required: Missing or invalid token');
   }
 
-  req.userId = userId;
-  next();
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string, role: string };
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    next(new HttpError(401, 'Invalid or expired token'));
+  }
 }
 
+/**
+ * Authorize middleware to restrict routes by user role.
+ * Must be used AFTER the authenticate middleware.
+ *
+ * @example
+ * router.delete('/users/:id', authenticate, authorize('ADMIN'), deleteUser);
+ */
+export const authorize = (...allowedRoles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      next(new HttpError(403, 'Forbidden: You do not have permission to perform this action'));
+      return;
+    }
+
+    next();
+  };
+};

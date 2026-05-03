@@ -56,14 +56,15 @@ class MovieService {
     };
   }
 
-  async list(page: number, pageSize: number, userId: string) {
-    const totalItems = await prisma.movie.count({ where: { userId } });
+  async list(page: number, pageSize: number, userId: string, role: string) {
+    const whereClause = role === 'ADMIN' ? {} : { userId };
+    const totalItems = await prisma.movie.count({ where: whereClause });
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const clampedPage = Math.min(Math.max(page, 1), totalPages);
     const skip = (clampedPage - 1) * pageSize;
 
     const movies = await prisma.movie.findMany({
-      where: { userId },
+      where: whereClause,
       include: { frames: true },
       orderBy: [{ watchDate: 'desc' }, { id: 'desc' }],
       skip,
@@ -83,13 +84,13 @@ class MovieService {
     };
   }
 
-  async getById(movieId: string, userId: string): Promise<Movie> {
+  async getById(movieId: string, userId: string, role: string): Promise<Movie> {
     const movie = await prisma.movie.findUnique({
       where: { id: movieId },
       include: { frames: true },
     });
 
-    if (!movie || movie.userId !== userId) {
+    if (!movie || (role !== 'ADMIN' && movie.userId !== userId)) {
       throw new HttpError(404, 'Movie not found');
     }
 
@@ -119,12 +120,12 @@ class MovieService {
     }
   }
 
-  async update(movieId: string, input: MovieInput, userId: string): Promise<Movie> {
+  async update(movieId: string, input: MovieInput, userId: string, role: string): Promise<Movie> {
     const movie = await prisma.movie.findUnique({
       where: { id: movieId },
     });
 
-    if (!movie || movie.userId !== userId) {
+    if (!movie || (role !== 'ADMIN' && movie.userId !== userId)) {
       throw new HttpError(404, 'Movie not found');
     }
 
@@ -150,12 +151,12 @@ class MovieService {
     }
   }
 
-  async delete(movieId: string, userId: string): Promise<void> {
+  async delete(movieId: string, userId: string, role: string): Promise<void> {
     const movie = await prisma.movie.findUnique({
       where: { id: movieId },
     });
 
-    if (!movie || movie.userId !== userId) {
+    if (!movie || (role !== 'ADMIN' && movie.userId !== userId)) {
       throw new HttpError(404, 'Movie not found');
     }
 
@@ -169,12 +170,12 @@ class MovieService {
     }
   }
 
-  async addFrame(movieId: string, frameInput: FrameInput, userId: string): Promise<SavedFrame> {
+  async addFrame(movieId: string, frameInput: FrameInput, userId: string, role: string): Promise<SavedFrame> {
     const movie = await prisma.movie.findUnique({
       where: { id: movieId },
     });
 
-    if (!movie || movie.userId !== userId) {
+    if (!movie || (role !== 'ADMIN' && movie.userId !== userId)) {
       throw new HttpError(404, 'Movie not found');
     }
 
@@ -197,12 +198,12 @@ class MovieService {
     }
   }
 
-  async deleteFrame(movieId: string, frameId: string, userId: string): Promise<void> {
+  async deleteFrame(movieId: string, frameId: string, userId: string, role: string): Promise<void> {
     const movie = await prisma.movie.findUnique({
       where: { id: movieId },
     });
 
-    if (!movie || movie.userId !== userId) {
+    if (!movie || (role !== 'ADMIN' && movie.userId !== userId)) {
       throw new HttpError(404, 'Movie not found');
     }
 

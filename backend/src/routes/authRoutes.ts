@@ -7,8 +7,8 @@ const authRoutes = Router();
 
 authRoutes.post('/register', validate(registerSchema, 'body'), async (req, res, next) => {
   try {
-    const user = await authService.register(req.body);
-    res.status(201).json(user);
+    const data = await authService.register(req.body);
+    res.status(201).json(data);
   } catch (error) {
     next(error);
   }
@@ -16,8 +16,8 @@ authRoutes.post('/register', validate(registerSchema, 'body'), async (req, res, 
 
 authRoutes.post('/login', validate(loginSchema, 'body'), async (req, res, next) => {
   try {
-    const user = await authService.login(req.body);
-    res.status(200).json(user);
+    const data = await authService.login(req.body);
+    res.status(200).json(data);
   } catch (error) {
     next(error);
   }

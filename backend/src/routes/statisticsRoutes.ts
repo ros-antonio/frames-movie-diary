@@ -5,7 +5,7 @@ const statisticsRoutes = Router();
 
 statisticsRoutes.get('/overview', async (req, res, next) => {
   try {
-    res.status(200).json(await statisticsService.getOverview(req.userId!));
+    res.status(200).json(await statisticsService.getOverview(req.user!.userId, req.user!.role));
   } catch (error) {
     next(error);
   }

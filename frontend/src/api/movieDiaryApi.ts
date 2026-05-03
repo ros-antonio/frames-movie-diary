@@ -12,6 +12,11 @@ interface PaginatedResponse<T> {
   };
 }
 
+export interface AuthResponse {
+  user: AuthUser;
+  token: string;
+}
+
 export class ApiHttpError extends Error {
   public readonly status: number;
 
@@ -59,8 +64,8 @@ export interface MovieDiaryApi {
   deleteList(listId: string): Promise<void>;
   addMovieToList(listId: string, movieId: string): Promise<CustomList>;
   removeMovieFromList(listId: string, movieId: string): Promise<CustomList>;
-  register(input: { name: string; email: string; password: string; confirmPassword: string }): Promise<AuthUser>;
-  login(input: { email: string; password: string }): Promise<AuthUser>;
+  register(input: { name: string; email: string; password: string; confirmPassword: string }): Promise<AuthResponse>;
+  login(input: { email: string; password: string }): Promise<AuthResponse>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
 }
 
@@ -69,15 +74,15 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('token');
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(init?.headers as Record<string, string> ?? {}),
     };
 
-    if (userId) {
-      headers['X-User-Id'] = userId;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     response = await fetch(`${API_BASE_URL}${path}`, {
@@ -108,9 +113,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       if (firstDetail && body.message) {
         message = `${body.message}: ${firstDetail}`;
       }
-    } catch {
-      // Keep fallback message if response body is not JSON.
-    }
+    } catch { /* empty */ }
 
     throw new ApiHttpError(response.status, message);
   }
@@ -140,14 +143,14 @@ async function getAllPages<T>(path: string): Promise<T[]> {
 }
 
 export function registerUser(input: { name: string; email: string; password: string; confirmPassword: string }) {
-  return request<AuthUser>('/auth/register', {
+  return request<AuthResponse>('/auth/register', {
     method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
 export function loginUser(input: { email: string; password: string }) {
-  return request<AuthUser>('/auth/login', {
+  return request<AuthResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -240,4 +243,3 @@ export const movieDiaryApi: MovieDiaryApi = {
     return request<StatisticsOverview>('/statistics/overview');
   },
 };
-

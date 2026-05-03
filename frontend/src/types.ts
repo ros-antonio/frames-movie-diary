@@ -34,6 +34,7 @@ export interface AuthUser {
     id: string;
     name: string;
     email: string;
+    role: string;
 }
 
 export interface UserPreference {
@@ -68,4 +69,3 @@ export interface StatisticsOverview {
     moviesWithFrames: number;
     ratingDistribution: Record<string, number>;
 }
-

@@ -10,7 +10,7 @@ const listRoutes = Router();
 listRoutes.get('/', validate(paginationQuerySchema, 'query'), async (req, res, next) => {
   try {
     const { page, pageSize } = getPaginationQuery(req.query);
-    res.status(200).json(await listService.list(page, pageSize, req.userId!));
+    res.status(200).json(await listService.list(page, pageSize, req.user!.userId, req.user!.role));
   } catch (error) {
     next(error);
   }
@@ -18,7 +18,7 @@ listRoutes.get('/', validate(paginationQuerySchema, 'query'), async (req, res, n
 
 listRoutes.post('/', validate(createListSchema, 'body'), async (req, res, next) => {
   try {
-    const list = await listService.create(req.body, req.userId!);
+    const list = await listService.create(req.body, req.user!.userId);
     res.status(201).json(list);
   } catch (error) {
     next(error);
@@ -27,7 +27,7 @@ listRoutes.post('/', validate(createListSchema, 'body'), async (req, res, next) 
 
 listRoutes.get('/:listId', validate(listIdParamSchema, 'params'), async (req, res, next) => {
   try {
-    res.status(200).json(await listService.getById(req.params.listId, req.userId!));
+    res.status(200).json(await listService.getById(req.params.listId, req.user!.userId, req.user!.role));
   } catch (error) {
     next(error);
   }
@@ -39,7 +39,7 @@ listRoutes.put(
   validate(updateListSchema, 'body'),
   async (req, res, next) => {
     try {
-      res.status(200).json(await listService.update(req.params.listId, req.body, req.userId!));
+      res.status(200).json(await listService.update(req.params.listId, req.body, req.user!.userId, req.user!.role));
     } catch (error) {
       next(error);
     }
@@ -48,7 +48,7 @@ listRoutes.put(
 
 listRoutes.delete('/:listId', validate(listIdParamSchema, 'params'), async (req, res, next) => {
   try {
-    await listService.delete(req.params.listId, req.userId!);
+    await listService.delete(req.params.listId, req.user!.userId, req.user!.role);
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -60,7 +60,7 @@ listRoutes.post(
   validate(listMovieParamsSchema, 'params'),
   async (req, res, next) => {
     try {
-      res.status(200).json(await listService.addMovie(req.params.listId, req.params.movieId, req.userId!));
+      res.status(200).json(await listService.addMovie(req.params.listId, req.params.movieId, req.user!.userId, req.user!.role));
     } catch (error) {
       next(error);
     }
@@ -72,7 +72,7 @@ listRoutes.delete(
   validate(listMovieParamsSchema, 'params'),
   async (req, res, next) => {
     try {
-      res.status(200).json(await listService.removeMovie(req.params.listId, req.params.movieId, req.userId!));
+      res.status(200).json(await listService.removeMovie(req.params.listId, req.params.movieId, req.user!.userId, req.user!.role));
     } catch (error) {
       next(error);
     }

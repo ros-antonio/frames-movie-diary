@@ -17,7 +17,11 @@ describe('auth hooks backend paths', () => {
   it('navigates on successful backend login and sets form error on failure', async () => {
     const login = vi
       .fn()
-      .mockResolvedValueOnce({ id: 'u1', name: 'Tony', email: 'tony@example.com' })
+      // UPDATED: Now returns { user, token } to match the new API
+      .mockResolvedValueOnce({
+        user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'USER' },
+        token: 'fake-jwt-token'
+      })
       .mockRejectedValueOnce(new Error('Login failed'));
 
     const { result } = renderHook(() => useLoginPage({ forceBackend: true, login }));
@@ -48,7 +52,11 @@ describe('auth hooks backend paths', () => {
   it('navigates on successful backend register and sets form error on failure', async () => {
     const register = vi
       .fn()
-      .mockResolvedValueOnce({ id: 'u1', name: 'Tony', email: 'tony@example.com' })
+      // UPDATED: Now returns { user, token } to match the new API
+      .mockResolvedValueOnce({
+        user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'USER' },
+        token: 'fake-jwt-token'
+      })
       .mockRejectedValueOnce(new Error('Register failed'));
 
     const { result } = renderHook(() => useRegisterPage({ forceBackend: true, register }));
@@ -120,4 +128,3 @@ describe('auth hooks backend paths', () => {
     expect(navigateSpy).not.toHaveBeenCalled();
   });
 });
-

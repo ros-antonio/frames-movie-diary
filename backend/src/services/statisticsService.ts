@@ -1,12 +1,14 @@
 import { prisma } from '../repositories/prismaClient.js';
 
 class StatisticsService {
-  async getOverview(userId: string) {
+  async getOverview(userId: string, role: string) {
+    const whereClause = role === 'ADMIN' ? {} : { userId };
+
     const [totalMovies, ratedMovies, totalFrames, moviesWithFrames, ratingAggregate, groupedRatings] = await Promise.all([
-      prisma.movie.count({ where: { userId } }),
+      prisma.movie.count({ where: whereClause }),
       prisma.movie.count({
         where: {
-          userId,
+          ...whereClause,
           rating: {
             not: null,
           },
@@ -14,21 +16,19 @@ class StatisticsService {
       }),
       prisma.frame.count({
         where: {
-          movie: {
-            userId,
-          },
+          movie: whereClause,
         },
       }),
       prisma.movie.count({
         where: {
-          userId,
+          ...whereClause,
           frames: {
             some: {},
           },
         },
       }),
       prisma.movie.aggregate({
-        where: { userId },
+        where: whereClause,
         _avg: {
           rating: true,
         },
@@ -36,7 +36,7 @@ class StatisticsService {
       prisma.movie.groupBy({
         by: ['rating'],
         where: {
-          userId,
+          ...whereClause,
           rating: {
             not: null,
           },
@@ -87,4 +87,3 @@ class StatisticsService {
 }
 
 export const statisticsService = new StatisticsService();
-

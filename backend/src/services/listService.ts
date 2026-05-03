@@ -22,14 +22,15 @@ class ListService {
     };
   }
 
-  async list(page: number, pageSize: number, userId: string) {
-    const totalItems = await prisma.customList.count({ where: { userId } });
+  async list(page: number, pageSize: number, userId: string, role: string) {
+    const whereClause = role === 'ADMIN' ? {} : { userId };
+    const totalItems = await prisma.customList.count({ where: whereClause });
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const clampedPage = Math.min(Math.max(page, 1), totalPages);
     const skip = (clampedPage - 1) * pageSize;
 
     const lists = await prisma.customList.findMany({
-      where: { userId },
+      where: whereClause,
       include: { entries: true },
       orderBy: { id: 'desc' },
       skip,
@@ -49,13 +50,13 @@ class ListService {
     };
   }
 
-  async getById(listId: string, userId: string): Promise<CustomList> {
+  async getById(listId: string, userId: string, role: string): Promise<CustomList> {
     const list = await prisma.customList.findUnique({
       where: { id: listId },
       include: { entries: true },
     });
 
-    if (!list || list.userId !== userId) {
+    if (!list || (role !== 'ADMIN' && list.userId !== userId)) {
       throw new HttpError(404, 'List not found');
     }
 
@@ -82,12 +83,12 @@ class ListService {
     }
   }
 
-  async update(listId: string, input: ListInput, userId: string): Promise<CustomList> {
+  async update(listId: string, input: ListInput, userId: string, role: string): Promise<CustomList> {
     const list = await prisma.customList.findUnique({
       where: { id: listId },
     });
 
-    if (!list || list.userId !== userId) {
+    if (!list || (role !== 'ADMIN' && list.userId !== userId)) {
       throw new HttpError(404, 'List not found');
     }
 
@@ -110,12 +111,12 @@ class ListService {
     }
   }
 
-  async delete(listId: string, userId: string): Promise<void> {
+  async delete(listId: string, userId: string, role: string): Promise<void> {
     const list = await prisma.customList.findUnique({
       where: { id: listId },
     });
 
-    if (!list || list.userId !== userId) {
+    if (!list || (role !== 'ADMIN' && list.userId !== userId)) {
       throw new HttpError(404, 'List not found');
     }
 
@@ -131,16 +132,18 @@ class ListService {
     }
   }
 
-  async addMovie(listId: string, movieId: string, userId: string): Promise<CustomList> {
+  async addMovie(listId: string, movieId: string, userId: string, role: string): Promise<CustomList> {
     const list = await prisma.customList.findUnique({
       where: { id: listId },
     });
 
-    if (!list || list.userId !== userId) {
+    if (!list || (role !== 'ADMIN' && list.userId !== userId)) {
       throw new HttpError(404, 'List not found');
     }
 
-    const movieExists = await prisma.movie.count({ where: { id: movieId, userId } });
+    const movieWhere = role === 'ADMIN' ? { id: movieId } : { id: movieId, userId };
+    const movieExists = await prisma.movie.count({ where: movieWhere });
+
     if (movieExists === 0) {
       throw new HttpError(404, 'Movie not found');
     }
@@ -159,11 +162,11 @@ class ListService {
       throw error;
     }
 
-    return this.getById(listId, userId);
+    return this.getById(listId, userId, role);
   }
 
-  async removeMovie(listId: string, movieId: string, userId: string): Promise<CustomList> {
-    const list = await this.getById(listId, userId);
+  async removeMovie(listId: string, movieId: string, userId: string, role: string): Promise<CustomList> {
+    const list = await this.getById(listId, userId, role);
 
     if (!list.movieIds.includes(movieId)) {
       throw new HttpError(404, 'Movie not in list');
@@ -176,7 +179,7 @@ class ListService {
       },
     });
 
-    return this.getById(listId, userId);
+    return this.getById(listId, userId, role);
   }
 }
 
