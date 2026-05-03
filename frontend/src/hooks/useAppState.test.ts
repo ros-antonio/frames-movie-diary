@@ -25,6 +25,7 @@ function seedPendingOperations(operations: unknown[]) {
 describe('useAppState', () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('userId', 'test-user-id');
     setNavigatorOnline(true);
     vi.restoreAllMocks();
 
