@@ -127,7 +127,7 @@ describe('database role and ownership behavior', () => {
         expect.objectContaining({
           id: TEST_ADMIN_ID,
           role: 'ADMIN',
-          permissions: expect.arrayContaining(['ADMIN_VIEW_USERS', 'MOVIE_READ_ALL']),
+          permissions: expect.arrayContaining(['ADMIN_VIEW_USERS', 'ADMIN_DELETE_USERS', 'MOVIE_READ_ALL']),
         }),
         expect.objectContaining({
           id: TEST_USER_ID,
@@ -136,5 +136,55 @@ describe('database role and ownership behavior', () => {
         }),
       ]),
     );
+  });
+
+  it('allows admin to delete another user and cascades all owned data', async () => {
+    await createTestUser({
+      id: TEST_OTHER_USER_ID,
+      email: 'other@example.com',
+      name: 'Other User',
+    });
+
+    const movie = await createMovie({ movieName: 'Other Movie', watchDate: '2025-01-02' }, TEST_OTHER_USER_ID);
+    const list = await createList({ name: 'Other List' }, TEST_OTHER_USER_ID);
+    const frame = await request(app)
+      .post(`/api/movies/${movie.body.id}/frames`)
+      .set(authHeader(TEST_OTHER_USER_ID))
+      .send({
+        imageUrl: 'data:image/png;base64,abc123',
+        timestamp: '00:10',
+        caption: 'Frame',
+      });
+
+    await request(app).post(`/api/lists/${list.body.id}/movies/${movie.body.id}`).set(authHeader(TEST_OTHER_USER_ID));
+
+    const response = await request(app)
+      .delete(`/api/users/${TEST_OTHER_USER_ID}`)
+      .set(authHeader(TEST_ADMIN_ID, 'ADMIN'));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        message: 'User deleted successfully',
+        deletedUserId: TEST_OTHER_USER_ID,
+        deletedUserEmail: 'other@example.com',
+        deletedMovieCount: 1,
+        deletedListCount: 1,
+      }),
+    );
+
+    await expect(prisma.user.findUnique({ where: { id: TEST_OTHER_USER_ID } })).resolves.toBeNull();
+    await expect(prisma.movie.findUnique({ where: { id: movie.body.id } })).resolves.toBeNull();
+    await expect(prisma.frame.findUnique({ where: { id: frame.body.id } })).resolves.toBeNull();
+    await expect(prisma.customList.findUnique({ where: { id: list.body.id } })).resolves.toBeNull();
+  });
+
+  it('blocks admin self-delete', async () => {
+    const response = await request(app)
+      .delete(`/api/users/${TEST_ADMIN_ID}`)
+      .set(authHeader(TEST_ADMIN_ID, 'ADMIN'));
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('Admins cannot delete their own account');
   });
 });

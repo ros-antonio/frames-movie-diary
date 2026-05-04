@@ -68,6 +68,7 @@ export interface MovieDiaryApi {
   login(input: { email: string; password: string }): Promise<AuthResponse>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
   getUsers(): Promise<AdminUser[]>;
+  deleteUser(userId: string): Promise<void>;
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api';
@@ -241,5 +242,11 @@ export const movieDiaryApi: MovieDiaryApi = {
 
   getUsers() {
     return request<AdminUser[]>('/users');
+  },
+
+  deleteUser(userId: string) {
+    return request<void>(`/users/${userId}`, {
+      method: 'DELETE',
+    });
   },
 };

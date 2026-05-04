@@ -9,6 +9,10 @@ export const uuidParamSchema = z.object({
   id: z.uuid(),
 });
 
+export const userIdParamSchema = z.object({
+  id: z.string().min(1),
+});
+
 export const movieIdParamSchema = z.object({
   movieId: z.uuid(),
 });

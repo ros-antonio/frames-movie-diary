@@ -12,6 +12,7 @@ const adminPermissions = [
   'LIST_READ_ALL',
   'LIST_WRITE_ALL',
   'ADMIN_VIEW_USERS',
+  'ADMIN_DELETE_USERS',
 ];
 const userPermissions = [
   'MOVIE_READ_OWN',

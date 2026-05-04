@@ -1,10 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { movieDiaryApi } from '../api/movieDiaryApi';
 import { AdminDashboard } from './AdminDashboard';
 
 describe('AdminDashboard', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
   it('loads and renders users with roles and permissions', async () => {
     vi.spyOn(movieDiaryApi, 'getUsers').mockResolvedValue([
       {
@@ -55,6 +60,54 @@ describe('AdminDashboard', () => {
 
     await waitFor(() => {
       expect(screen.getByText('No users found.')).toBeInTheDocument();
+    });
+  });
+
+  it('deletes another user and keeps current admin protected from self-delete', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('userId', 'admin-1');
+
+    vi.spyOn(movieDiaryApi, 'getUsers').mockResolvedValue([
+      {
+        id: 'admin-1',
+        name: 'Admin User',
+        email: 'admin@example.com',
+        role: 'ADMIN',
+        permissions: ['ADMIN_VIEW_USERS', 'ADMIN_DELETE_USERS'],
+        movieCount: 2,
+        listCount: 1,
+      },
+      {
+        id: 'user-2',
+        name: 'Regular User',
+        email: 'user2@example.com',
+        role: 'USER',
+        permissions: ['MOVIE_READ_OWN'],
+        movieCount: 3,
+        listCount: 2,
+      },
+    ]);
+
+    vi.spyOn(movieDiaryApi, 'deleteUser').mockResolvedValue();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(<AdminDashboard onBack={vi.fn()} />);
+
+    expect(await screen.findByText('Regular User')).toBeInTheDocument();
+
+    const deleteButtons = screen.getAllByRole('button', { name: 'Delete' });
+    expect(deleteButtons).toHaveLength(2);
+    expect(deleteButtons[0]).toBeDisabled();
+    expect(deleteButtons[1]).toBeEnabled();
+
+    await user.click(deleteButtons[1]);
+
+    await waitFor(() => {
+      expect(movieDiaryApi.deleteUser).toHaveBeenCalledWith('user-2');
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Regular User')).not.toBeInTheDocument();
     });
   });
 });

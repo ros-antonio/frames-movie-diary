@@ -11,6 +11,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const currentUserId = localStorage.getItem('userId');
 
   useEffect(() => {
     let isMounted = true;
@@ -39,6 +41,28 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       isMounted = false;
     };
   }, []);
+
+  async function handleDeleteUser(user: AdminUser) {
+    const confirmation = window.confirm(
+      `Delete ${user.email}? This also removes all movies, frames, and lists owned by this user.`,
+    );
+
+    if (!confirmation) {
+      return;
+    }
+
+    setDeletingUserId(user.id);
+    setError(null);
+
+    try {
+      await movieDiaryApi.deleteUser(user.id);
+      setUsers((previousUsers) => previousUsers.filter((existingUser) => existingUser.id !== user.id));
+    } catch (deleteError: unknown) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete user.');
+    } finally {
+      setDeletingUserId(null);
+    }
+  }
 
   return (
     <div className="min-h-screen p-8 text-[#B9A5D2]" style={{ backgroundColor: '#261834' }}>
@@ -85,6 +109,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                 <th className="p-4 text-[#E0BAAA]">Movies</th>
                 <th className="p-4 text-[#E0BAAA]">Lists</th>
                 <th className="p-4 text-[#E0BAAA]">Permissions</th>
+                <th className="p-4 text-[#E0BAAA]">Actions</th>
               </tr>
               </thead>
               <tbody>
@@ -100,11 +125,21 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                   <td className="p-4">{user.movieCount}</td>
                   <td className="p-4">{user.listCount}</td>
                   <td className="p-4 text-sm opacity-90">{user.permissions.join(', ')}</td>
+                  <td className="p-4">
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteUser(user)}
+                      disabled={deletingUserId === user.id || user.id === currentUserId}
+                      className="rounded border border-red-500/70 px-3 py-1 text-sm text-red-200 transition-colors hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingUserId === user.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </td>
                 </tr>
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td className="p-8 text-center opacity-70" colSpan={5}>No users found.</td>
+                  <td className="p-8 text-center opacity-70" colSpan={6}>No users found.</td>
                 </tr>
               )}
               </tbody>
