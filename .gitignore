@@ -5,6 +5,7 @@ build/
 coverage/
 playwright-report/
 test-results/
+.vitest-*.json
 .env
 .env.*
 !.env.example
