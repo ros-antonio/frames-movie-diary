@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { HttpError } from '../utils/httpError.js';
 import { config } from '../config.js';
+import { suspiciousActivityService } from '../services/suspiciousActivityService.js';
+import { getRequestIp } from '../utils/requestMetadata.js';
 
 declare global {
   namespace Express {
@@ -59,8 +61,16 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
  * router.delete('/users/:id', authenticate, authorize('ADMIN'), deleteUser);
  */
 export const authorize = (...allowedRoles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
+      if (req.user) {
+        await suspiciousActivityService.recordForbiddenAction({
+          userId: req.user.userId,
+          roleName: req.user.role,
+          actionDetails: `Forbidden access attempt on ${req.method} ${req.originalUrl}`,
+          ipAddress: getRequestIp(req),
+        });
+      }
       next(new HttpError(403, 'Forbidden: You do not have permission to perform this action'));
       return;
     }

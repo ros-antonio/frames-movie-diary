@@ -110,6 +110,10 @@ class AuthService {
       token,
     };
   }
+
+  normalizeEmail(email: string): string {
+    return normalizeEmail(email);
+  }
 }
 
 export const authService = new AuthService();

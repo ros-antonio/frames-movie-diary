@@ -7,15 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SuspiciousStatus {
+  OBSERVED
+  REVIEWED
+  CLEARED
+}
+
 model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  name         String
-  passwordHash String
-  roleId       String
-  role         Role         @relation(fields: [roleId], references: [id])
-  movies       Movie[]
-  lists        CustomList[]
+  id                 String           @id @default(uuid())
+  email              String           @unique
+  name               String
+  passwordHash       String
+  roleId             String
+  role               Role             @relation(fields: [roleId], references: [id])
+  movies             Movie[]
+  lists              CustomList[]
+  auditLogs          AuditLog[]
+  suspiciousFlags    SuspiciousUser[]
+  reviewedSuspicious SuspiciousUser[] @relation("SuspiciousReviewedBy")
 }
 
 model Role {
@@ -70,4 +79,39 @@ model ListMovie {
   movieId String
 
   @@unique([listId, movieId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  roleName   String
+  actionType String
+  entityType String?
+  entityId   String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([actionType, createdAt])
+  @@index([createdAt])
+}
+
+model SuspiciousUser {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason          String
+  score           Int              @default(0)
+  status          SuspiciousStatus @default(OBSERVED)
+  firstDetectedAt DateTime         @default(now())
+  lastDetectedAt  DateTime         @updatedAt
+  reviewedAt      DateTime?
+  reviewedById    String?
+  reviewedBy      User?            @relation("SuspiciousReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@unique([userId, reason])
 }
