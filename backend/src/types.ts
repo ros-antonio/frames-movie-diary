@@ -39,3 +39,17 @@ export interface PaginatedResult<T> {
   };
 }
 
+export interface SuspiciousObservation {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  role: string;
+  reason: string;
+  score: number;
+  status: 'OBSERVED' | 'REVIEWED' | 'CLEARED';
+  firstDetectedAt: string;
+  lastDetectedAt: string;
+  reviewedAt?: string;
+}
+
