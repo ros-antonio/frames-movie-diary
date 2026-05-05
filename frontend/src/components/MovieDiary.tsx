@@ -1,4 +1,4 @@
-import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown, ArrowUp, Shield } from 'lucide-react';
+import { Film, List, BarChart3, TableIcon, LayoutGrid, Plus, ArrowUpDown, ArrowUp, Shield, MessageCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { MovieLog } from '../types';
 import { useMovieDiaryPage } from '../hooks/useMovieDiaryPage';
@@ -8,10 +8,11 @@ interface MovieDiaryProps {
     onAddClick: () => void;
     onSelectMovie: (id: string) => void;
     onAdminClick?: () => void;
+    onChatClick?: () => void;
     userRole?: string | null;
 }
 
-export function MovieDiary({ movieLogs, onAddClick, onSelectMovie, onAdminClick, userRole }: MovieDiaryProps) {
+export function MovieDiary({ movieLogs, onAddClick, onSelectMovie, onAdminClick, onChatClick, userRole }: MovieDiaryProps) {
     const {
         viewMode,
         currentMovies,
@@ -102,6 +103,14 @@ export function MovieDiary({ movieLogs, onAddClick, onSelectMovie, onAdminClick,
                       >
                           <List className="w-4 h-4 mr-2" /> Custom Lists
                       </button>
+                      {onChatClick && (
+                        <button
+                          onClick={onChatClick}
+                          className="flex items-center px-4 py-2 border rounded-md border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 transition-colors btn-press"
+                        >
+                            <MessageCircle className="w-4 h-4 mr-2" /> Chat
+                        </button>
+                      )}
                       <button
                         onClick={onAddClick}
                         className="flex items-center px-4 py-2 rounded-md bg-[#E0BAAA] text-[#261834] font-bold hover:opacity-90 transition-opacity btn-press"

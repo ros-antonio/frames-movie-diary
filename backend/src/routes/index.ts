@@ -3,6 +3,7 @@ import { movieRoutes } from './movieRoutes.js';
 import { listRoutes } from './listRoutes.js';
 import { statisticsRoutes } from './statisticsRoutes.js';
 import { authRoutes } from './authRoutes.js';
+import { chatRoutes } from './chatRoutes.js';
 import { userRoutes } from './userRoutes.js';
 
 const apiRoutes = Router();
@@ -16,6 +17,7 @@ apiRoutes.use('/lists', listRoutes);
 apiRoutes.use('/statistics', statisticsRoutes);
 apiRoutes.use('/users', userRoutes);
 apiRoutes.use('/auth', authRoutes);
+apiRoutes.use('/chat', chatRoutes);
 
 export { apiRoutes };
 

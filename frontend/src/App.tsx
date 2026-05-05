@@ -11,6 +11,7 @@ import { RegisterPage } from './components/RegisterPage';
 import { Statistics } from './components/Statistics';
 import { CustomLists } from './components/CustomLists';
 import { AdminDashboard } from './components/AdminDashboard';
+import { ChatPage } from './components/ChatPage';
 import { useAppState } from './hooks/useAppState';
 import { useUserActivity } from './hooks/useUserActivity';
 import { movieDiaryApi } from './api/movieDiaryApi';
@@ -24,12 +25,13 @@ function DiaryRoute({ movieLogs, onAddClick, onSelectMovie }: {
   const userRole = localStorage.getItem('userRole');
 
   return (
-    <div className="min-h-screen bg-[#261834]">
+        <div className="min-h-screen bg-[#261834]">
       <MovieDiary
         movieLogs={movieLogs}
         onAddClick={onAddClick}
         onSelectMovie={onSelectMovie}
         onAdminClick={() => navigate('/admin')}
+        onChatClick={() => navigate('/chat')}
         userRole={userRole}
       />
     </div>
@@ -285,6 +287,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/statistics" element={<RequireAuth><Statistics movieLogs={movieLogs} /></RequireAuth>} />
+        <Route path="/chat" element={<RequireAuth><ChatPage onBack={() => navigate('/diary')} /></RequireAuth>} />
         <Route
           path="/admin"
           element={

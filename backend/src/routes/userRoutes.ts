@@ -3,6 +3,7 @@ import { authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { userService } from '../services/userService.js';
 import { auditLogService } from '../services/auditLogService.js';
+import { chatService } from '../services/chatService.js';
 import { suspiciousActivityService } from '../services/suspiciousActivityService.js';
 import { getRequestIp } from '../utils/requestMetadata.js';
 import { userIdParamSchema } from '../validators/commonSchemas.js';
@@ -63,6 +64,7 @@ userRoutes.post('/suspicious/:id/clear', authorize('ADMIN'), validate(userIdPara
 
 userRoutes.delete('/:id', authorize('ADMIN'), validate(userIdParamSchema, 'params'), async (req, res, next) => {
   try {
+    const deletedChatMessageCount = await chatService.deleteUserMessages(req.params.id);
     const result = await userService.deleteUser(req.params.id, req.user!.userId);
     await auditLogService.log({
       userId: req.user!.userId,
@@ -70,12 +72,13 @@ userRoutes.delete('/:id', authorize('ADMIN'), validate(userIdParamSchema, 'param
       actionType: 'ADMIN_DELETE_USER',
       entityType: 'USER',
       entityId: result.deletedUserId,
-      details: `Deleted user ${result.deletedUserEmail}`,
+      details: `Deleted user ${result.deletedUserEmail} and removed ${deletedChatMessageCount} chat messages`,
       ipAddress: getRequestIp(req),
     });
     await suspiciousActivityService.evaluateDeleteActivity(req.user!.userId);
     res.status(200).json({
       message: 'User deleted successfully',
+      deletedChatMessageCount,
       ...result,
     });
   } catch (error) {

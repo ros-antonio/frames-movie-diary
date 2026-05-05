@@ -15,15 +15,23 @@
    - Tests **always** use `.env.test` (via `NODE_ENV=test`) and run in isolation on the test database.
    - The development database is never affected by test runs.
 
+### Chat Database
+4. Start a local MongoDB instance for chat persistence. The chat feature uses these defaults unless you override them in `.env` / `.env.test`:
+
+    ```env
+    MONGODB_URL="mongodb://127.0.0.1:27017"
+    MONGODB_DB_NAME="frames_chat_logging_chat"
+    ```
+
 ### Running Server & Tests
-4. (Optional) Seed a demo user in development:
+5. (Optional) Seed a demo user in development:
 
     ```powershell
     Set-Location -Path 'C:\Tony\Computer_Science\frames-movie-diary\backend'
     npm run db:seed
     ```
 
-5. Run tests (requires PostgreSQL running):
+6. Run tests (requires PostgreSQL running):
 
     ```powershell
     Set-Location -Path 'C:\Tony\Computer_Science\frames-movie-diary\backend'
@@ -31,13 +39,14 @@
     ```
    - Tests automatically set `NODE_ENV=test` and use the `.env.test` database.
 
-6. Run the development server:
+7. Run the development server:
 
     ```powershell
     Set-Location -Path 'C:\Tony\Computer_Science\frames-movie-diary\backend'
     npm run dev
     ```
    - Server uses the `.env` database (development).
+   - WebSocket chat is available at `/ws/chat`.
 
 ## Main endpoints
 
@@ -59,3 +68,4 @@
 - `GET /api/statistics/overview`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `GET /api/chat/messages`

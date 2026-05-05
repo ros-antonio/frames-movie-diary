@@ -61,6 +61,24 @@ export interface SuspiciousObservation {
     reviewedAt?: string;
 }
 
+export interface ChatMessage {
+    id: string;
+    conversationId: string;
+    senderUserId: string;
+    senderName: string;
+    senderRole: string;
+    recipientUserId: string;
+    text: string;
+    createdAt: string;
+}
+
+export interface ChatUser {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+}
+
 export interface UserPreference {
     viewMode: 'table' | 'card';
     sortBy: 'movieName' | 'watchDate' | 'none';

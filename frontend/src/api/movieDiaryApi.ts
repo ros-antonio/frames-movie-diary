@@ -1,4 +1,4 @@
-import type { AdminUser, AuthUser, CustomList, MovieInput, MovieLog, SavedFrame, StatisticsOverview, SuspiciousObservation } from '../types';
+import type { AdminUser, AuthUser, ChatMessage, ChatUser, CustomList, MovieInput, MovieLog, SavedFrame, StatisticsOverview, SuspiciousObservation } from '../types';
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -67,6 +67,8 @@ export interface MovieDiaryApi {
   register(input: { name: string; email: string; password: string; confirmPassword: string }): Promise<AuthResponse>;
   login(input: { email: string; password: string }): Promise<AuthResponse>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
+  getChatUsers(): Promise<ChatUser[]>;
+  getChatMessages(otherUserId: string): Promise<ChatMessage[]>;
   getUsers(): Promise<AdminUser[]>;
   getSuspiciousUsers(): Promise<SuspiciousObservation[]>;
   markSuspiciousUserReviewed(observationId: string): Promise<SuspiciousObservation>;
@@ -241,6 +243,14 @@ export const movieDiaryApi: MovieDiaryApi = {
 
   getStatisticsOverview() {
     return request<StatisticsOverview>('/statistics/overview');
+  },
+
+  getChatUsers() {
+    return request<ChatUser[]>('/chat/users');
+  },
+
+  getChatMessages(otherUserId: string) {
+    return request<ChatMessage[]>(`/chat/messages/${otherUserId}`);
   },
 
   getUsers() {

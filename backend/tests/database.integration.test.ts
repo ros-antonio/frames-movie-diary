@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { prisma } from '../src/repositories/prismaClient.js';
+import { chatService } from '../src/services/chatService.js';
 import {
   ADMIN_PERMISSIONS,
   TEST_ADMIN_ID,
@@ -173,6 +174,13 @@ describe('database role and ownership behavior', () => {
       email: 'other@example.com',
       name: 'Other User',
     });
+    await chatService.createMessage({
+      senderUserId: TEST_OTHER_USER_ID,
+      senderName: 'Other User',
+      senderRole: 'USER',
+      recipientUserId: TEST_USER_ID,
+      text: 'This chat should disappear with the deleted user.',
+    });
 
     const movie = await createMovie({ movieName: 'Other Movie', watchDate: '2025-01-02' }, TEST_OTHER_USER_ID);
     const list = await createList({ name: 'Other List' }, TEST_OTHER_USER_ID);
@@ -197,6 +205,7 @@ describe('database role and ownership behavior', () => {
         message: 'User deleted successfully',
         deletedUserId: TEST_OTHER_USER_ID,
         deletedUserEmail: 'other@example.com',
+        deletedChatMessageCount: 1,
         deletedMovieCount: 1,
         deletedListCount: 1,
       }),
@@ -206,6 +215,7 @@ describe('database role and ownership behavior', () => {
     await expect(prisma.movie.findUnique({ where: { id: movie.body.id } })).resolves.toBeNull();
     await expect(prisma.frame.findUnique({ where: { id: frame.body.id } })).resolves.toBeNull();
     await expect(prisma.customList.findUnique({ where: { id: list.body.id } })).resolves.toBeNull();
+    await expect(chatService.listConversationMessages(TEST_USER_ID, TEST_OTHER_USER_ID)).resolves.toEqual([]);
   });
 
   it('blocks admin self-delete', async () => {

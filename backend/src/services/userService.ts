@@ -1,4 +1,4 @@
-import type { SuspiciousObservation } from '../types.js';
+import type { ChatUser, SuspiciousObservation } from '../types.js';
 import { prisma } from '../repositories/prismaClient.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -87,6 +87,27 @@ class UserService {
       firstDetectedAt: this.toIsoString(entry.firstDetectedAt),
       lastDetectedAt: this.toIsoString(entry.lastDetectedAt),
       reviewedAt: entry.reviewedAt ? this.toIsoString(entry.reviewedAt) : undefined,
+    }));
+  }
+
+  async listChatUsers(currentUserId: string): Promise<ChatUser[]> {
+    const users = await prisma.user.findMany({
+      where: {
+        id: {
+          not: currentUserId,
+        },
+      },
+      include: {
+        role: true,
+      },
+      orderBy: [{ role: { name: 'asc' } }, { name: 'asc' }, { email: 'asc' }],
+    });
+
+    return users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role.name,
     }));
   }
 
