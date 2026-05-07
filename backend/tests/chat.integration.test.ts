@@ -2,6 +2,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TEST_OTHER_USER_ID, app, authHeader, createTestUser, resetStore } from './testUtils.js';
 import { chatService } from '../src/services/chatService.js';
+import { userService } from '../src/services/userService.js';
 
 describe('chat API', () => {
   beforeEach(async () => {
@@ -64,5 +65,27 @@ describe('chat API', () => {
     const response = await request(app).get(`/api/chat/messages/${TEST_OTHER_USER_ID}`);
 
     expect(response.status).toBe(401);
+  });
+
+  it('surfaces chat user lookup failures through the API error handler', async () => {
+    vi.spyOn(userService, 'listChatUsers').mockRejectedValue(new Error('chat users failed'));
+
+    const response = await request(app)
+      .get('/api/chat/users')
+      .set(authHeader());
+
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe('Internal server error');
+  });
+
+  it('surfaces chat history lookup failures through the API error handler', async () => {
+    vi.spyOn(chatService, 'listConversationMessages').mockRejectedValue(new Error('chat history failed'));
+
+    const response = await request(app)
+      .get(`/api/chat/messages/${TEST_OTHER_USER_ID}`)
+      .set(authHeader());
+
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe('Internal server error');
   });
 });

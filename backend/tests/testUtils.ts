@@ -2,6 +2,7 @@ import request from 'supertest';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { createApp } from '../src/app.js';
+import { getMongoDb } from '../src/repositories/mongoClient.js';
 import { prisma } from '../src/repositories/prismaClient.js';
 import { config } from '../src/config.js';
 
@@ -92,6 +93,9 @@ export async function resetStore(): Promise<void> {
       roleId: TEST_ADMIN_ROLE_ID,
     },
   });
+
+  const mongoDb = await getMongoDb();
+  await mongoDb.collection('messages').deleteMany({});
 }
 
 export async function createTestUser(input: {

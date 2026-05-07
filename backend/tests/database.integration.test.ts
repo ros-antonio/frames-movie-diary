@@ -218,6 +218,65 @@ describe('database role and ownership behavior', () => {
     await expect(chatService.listConversationMessages(TEST_USER_ID, TEST_OTHER_USER_ID)).resolves.toEqual([]);
   });
 
+  it('stores direct messages in chronological order and trims chat text', async () => {
+    await createTestUser({
+      id: TEST_OTHER_USER_ID,
+      email: 'other@example.com',
+      name: 'Other User',
+    });
+
+    const firstMessage = await chatService.createMessage({
+      senderUserId: TEST_USER_ID,
+      senderName: 'Integration Test User',
+      senderRole: 'USER',
+      recipientUserId: TEST_OTHER_USER_ID,
+      text: '  First hello  ',
+    });
+    const secondMessage = await chatService.createMessage({
+      senderUserId: TEST_OTHER_USER_ID,
+      senderName: 'Other User',
+      senderRole: 'USER',
+      recipientUserId: TEST_USER_ID,
+      text: 'Second hello',
+    });
+
+    const messages = await chatService.listConversationMessages(TEST_USER_ID, TEST_OTHER_USER_ID, 10);
+
+    expect(messages.map((message) => message.id)).toEqual([firstMessage.id, secondMessage.id]);
+    expect(messages[0]?.text).toBe('First hello');
+    expect(messages[1]?.text).toBe('Second hello');
+  });
+
+  it('rejects invalid direct message recipients', async () => {
+    await createTestUser({
+      id: TEST_OTHER_USER_ID,
+      email: 'other@example.com',
+      name: 'Other User',
+    });
+
+    await expect(chatService.createMessage({
+      senderUserId: TEST_USER_ID,
+      senderName: 'Integration Test User',
+      senderRole: 'USER',
+      recipientUserId: TEST_USER_ID,
+      text: 'self-send',
+    })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Direct chat requires another user.',
+    });
+
+    await expect(chatService.createMessage({
+      senderUserId: TEST_USER_ID,
+      senderName: 'Integration Test User',
+      senderRole: 'USER',
+      recipientUserId: 'missing-user',
+      text: 'missing recipient',
+    })).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Chat recipient not found',
+    });
+  });
+
   it('blocks admin self-delete', async () => {
     const response = await request(app)
       .delete(`/api/users/${TEST_ADMIN_ID}`)
