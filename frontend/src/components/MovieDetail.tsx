@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { ArrowLeft, Edit, Trash2, Star, Film, Link as LinkIcon, Upload } from 'lucide-react';
 import type { MovieLog, SavedFrame } from '../types';
 import { useMovieDetail } from '../hooks/useMovieDetail';
@@ -11,6 +11,7 @@ interface MovieDetailProps {
     onEdit: () => void;
     onAddFrame?: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => Promise<boolean> | boolean | void;
     onDeleteFrame?: (movieId: string, frameId: string) => Promise<boolean> | boolean | void;
+    accountMenu?: ReactNode;
 }
 
 interface UploadFormData {
@@ -87,7 +88,7 @@ function StarRating({ rating = 0 }: { rating?: number }) {
     );
 }
 
-export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDeleteFrame }: MovieDetailProps) {
+export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDeleteFrame, accountMenu }: MovieDetailProps) {
     const { handleDelete } = useMovieDetail(movie, onDelete);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isSavingUpload, setIsSavingUpload] = useState(false);
@@ -147,13 +148,16 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
     return (
         <div className="min-h-screen p-8 bg-[#261834]">
             <div className="max-w-4xl mx-auto space-y-8">
-                <button
-                    onClick={onBack}
-                    className="flex items-center text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors mb-4"
-                >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Diary
-                </button>
+                <div className="mb-4 flex items-center justify-between gap-4">
+                    <button
+                        onClick={onBack}
+                        className="flex items-center text-[#B9A5D2] transition-colors hover:text-[#E0BAAA]"
+                    >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Diary
+                    </button>
+                    {accountMenu}
+                </div>
 
                 <div className="rounded-lg p-8 space-y-6 bg-[#223662]">
                     <div className="flex flex-col md:flex-row items-start justify-between gap-4">

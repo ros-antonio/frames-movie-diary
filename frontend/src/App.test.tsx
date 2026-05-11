@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -147,10 +147,37 @@ describe('App', () => {
   it('allows admin users to open admin route', async () => {
     localStorage.setItem('userId', 'test-admin');
     localStorage.setItem('userRole', 'ADMIN');
+    localStorage.setItem('userName', 'Admin User');
+    localStorage.setItem('userEmail', 'admin@example.com');
 
     renderApp(['/admin']);
 
     expect(await screen.findByRole('heading', { name: 'Admin Dashboard' })).toBeInTheDocument();
+  });
+
+  it('shows the account menu for authenticated routes and logs out cleanly', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('userId', 'test-user');
+    localStorage.setItem('userRole', 'USER');
+    localStorage.setItem('userName', 'Tony Stark');
+    localStorage.setItem('userEmail', 'tony@example.com');
+
+    renderApp(['/diary']);
+
+    await user.click(screen.getByRole('button', { name: 'Account menu' }));
+
+    const menu = screen.getByRole('menu');
+    expect(menu).toBeInTheDocument();
+    expect(within(menu).getByText('Tony Stark')).toBeInTheDocument();
+    expect(within(menu).getByText('tony@example.com')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('menuitem', { name: 'Logout' }));
+
+    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+    expect(localStorage.getItem('userId')).toBeNull();
+    expect(localStorage.getItem('userRole')).toBeNull();
+    expect(localStorage.getItem('userName')).toBeNull();
+    expect(localStorage.getItem('userEmail')).toBeNull();
   });
 
   it('shows sync banner and dismissible operation errors when app state exposes them', async () => {
@@ -166,6 +193,7 @@ describe('App', () => {
       operationError: 'Something went wrong',
       clearOperationError,
       syncPendingOperations,
+      refreshLists: vi.fn(),
       handleAddMovie: vi.fn(),
       handleUpdateMovie: vi.fn(),
       handleDeleteMovie: vi.fn(),

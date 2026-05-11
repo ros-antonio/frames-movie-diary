@@ -234,7 +234,6 @@ describe('MovieDiary', () => {
   });
 
   it('loads more when the intersection observer sentinel becomes visible', async () => {
-    const user = userEvent.setup();
     const movieLogs = Array.from({ length: 13 }, (_, idx) =>
       movie(String(idx + 1), `Movie ${idx + 1}`, `2026-01-${String((idx % 28) + 1).padStart(2, '0')}`),
     );

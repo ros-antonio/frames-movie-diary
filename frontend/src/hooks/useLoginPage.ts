@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../api/movieDiaryApi';
 import { EMAIL_REGEX, normalizeEmail } from '../utils/formValidation';
+import { dispatchSessionChanged, persistSessionUser, persistTestSessionUser } from '../utils/session';
 
 interface FormErrors {
   email?: string;
@@ -56,9 +57,13 @@ export function useLoginPage(options?: UseLoginPageOptions) {
     const trimmedEmail = normalizeEmail(email);
 
     if (!useBackend) {
-      localStorage.setItem('userId', 'test-user');
-      localStorage.setItem('userRole', 'USER');
-      window.dispatchEvent(new CustomEvent('userIdChanged', { detail: { userId: 'test-user' } }));
+      persistTestSessionUser({
+        id: 'test-user',
+        role: 'USER',
+        name: 'Test User',
+        email: trimmedEmail,
+      });
+      dispatchSessionChanged('test-user');
       navigate('/diary');
       return;
     }
@@ -69,14 +74,8 @@ export function useLoginPage(options?: UseLoginPageOptions) {
         password,
       });
 
-      localStorage.setItem('userId', user.id);
-      localStorage.setItem('userRole', user.role);
-
-      localStorage.removeItem('movie-diary.movies-cache.v1');
-      localStorage.removeItem('movie-diary.lists-cache.v1');
-      localStorage.removeItem('movie-diary.offline-queue.v1');
-
-      window.dispatchEvent(new CustomEvent('userIdChanged', { detail: { userId: user.id } }));
+      persistSessionUser(user);
+      dispatchSessionChanged(user.id);
 
       navigate('/diary');
     } catch (error: unknown) {

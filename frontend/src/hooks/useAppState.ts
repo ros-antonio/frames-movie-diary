@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import type {CustomList, MovieInput, MovieLog, SavedFrame} from '../types';
-import {ApiHttpError, isOfflineLikeError, movieDiaryApi} from '../api/movieDiaryApi';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CustomList, MovieInput, MovieLog, SavedFrame } from '../types';
+import { ApiHttpError, isOfflineLikeError, movieDiaryApi } from '../api/movieDiaryApi';
 
 interface UseAppStateOptions {
   forceBackend?: boolean;
@@ -371,8 +371,6 @@ export function useAppState(options?: UseAppStateOptions) {
       localStorage.removeItem(MOVIES_CACHE_KEY);
       localStorage.removeItem(LISTS_CACHE_KEY);
       localStorage.removeItem(OFFLINE_QUEUE_KEY);
-      setPendingOperations([]);
-      setIsOffline(false);
       return;
     }
 

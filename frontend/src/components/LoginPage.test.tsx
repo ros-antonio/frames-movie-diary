@@ -34,6 +34,10 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Sign In' }));
 
     expect(screen.getByText('Diary Route')).toBeInTheDocument();
+    expect(localStorage.getItem('userId')).toBe('test-user');
+    expect(localStorage.getItem('userRole')).toBe('USER');
+    expect(localStorage.getItem('userName')).toBe('Test User');
+    expect(localStorage.getItem('userEmail')).toBe('user@example.com');
   });
 
   it('does not navigate when email is empty', async () => {

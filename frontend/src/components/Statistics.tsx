@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import type { ReactNode } from 'react';
 import type { MovieLog } from '../types';
 import { getBarColor, useStatistics } from '../hooks/useStatistics';
 
 interface StatisticsProps {
   movieLogs: MovieLog[];
+  accountMenu?: ReactNode;
 }
 
 interface CustomTooltipProps {
@@ -32,7 +34,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   return null;
 };
 
-export function Statistics({ movieLogs }: StatisticsProps) {
+export function Statistics({ movieLogs, accountMenu }: StatisticsProps) {
   const navigate = useNavigate();
   const { totalMovies, averageRating, mostCommonRating, ratingData } = useStatistics(movieLogs);
 
@@ -40,13 +42,16 @@ export function Statistics({ movieLogs }: StatisticsProps) {
     <div className="min-h-screen p-8" style={{ backgroundColor: '#261834' }}>
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Back Button */}
-        <button
-          onClick={() => navigate('/diary')}
-          className="flex items-center mb-4 text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Diary
-        </button>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <button
+            onClick={() => navigate('/diary')}
+            className="flex items-center text-[#B9A5D2] transition-colors hover:text-[#E0BAAA]"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Diary
+          </button>
+          {accountMenu}
+        </div>
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">

@@ -1,4 +1,5 @@
 import { ArrowLeft, Film, Calendar, Star, MessageSquare, Link as LinkIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { MovieInput, MovieLog } from '../types';
 import { useMovieForm } from '../hooks/useMovieForm';
 import { getTodayDateInputValue } from '../utils/dateInput';
@@ -7,9 +8,10 @@ interface LogNewMovieProps {
     onSave: (movie: MovieInput) => void;
     onCancel: () => void;
     initialData?: MovieLog;
+    accountMenu?: ReactNode;
 }
 
-export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps) {
+export function LogNewMovie({ onSave, onCancel, initialData, accountMenu }: LogNewMovieProps) {
     const { formData, setFormData, handleSubmit, errors } = useMovieForm(onSave, initialData);
     const hasErrors = Object.keys(errors).length > 0;
     const todayDateMax = getTodayDateInputValue();
@@ -17,9 +19,12 @@ export function LogNewMovie({ onSave, onCancel, initialData }: LogNewMovieProps)
     return (
         <div className="min-h-screen p-8 bg-[#261834]">
             <div className="max-w-3xl mx-auto">
-                <button onClick={onCancel} className="flex items-center mb-6 text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors btn-press">
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
-                </button>
+                <div className="mb-6 flex items-center justify-between gap-4">
+                    <button onClick={onCancel} className="btn-press flex items-center text-[#B9A5D2] transition-colors hover:text-[#E0BAAA]">
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                    </button>
+                    {accountMenu}
+                </div>
 
                 <div className="flex items-center gap-3 mb-2">
                     <Film className="w-8 h-8 text-[#E0BAAA]" />

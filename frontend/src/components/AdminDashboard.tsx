@@ -1,13 +1,15 @@
 import { ArrowLeft, Shield } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import type { AdminUser, SuspiciousObservation } from '../types';
 import { movieDiaryApi } from '../api/movieDiaryApi';
 
 interface AdminDashboardProps {
   onBack: () => void;
+  accountMenu?: ReactNode;
 }
 
-export function AdminDashboard({ onBack }: AdminDashboardProps) {
+export function AdminDashboard({ onBack, accountMenu }: AdminDashboardProps) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [suspiciousUsers, setSuspiciousUsers] = useState<SuspiciousObservation[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -125,9 +127,12 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
               <p className="text-sm opacity-80">Users, roles, and permissions</p>
             </div>
           </div>
-          <span className="rounded-md border border-[#E0BAAA] px-3 py-1 text-sm text-[#E0BAAA]">
-            Admin
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="rounded-md border border-[#E0BAAA] px-3 py-1 text-sm text-[#E0BAAA]">
+              Admin
+            </span>
+            {accountMenu}
+          </div>
         </div>
 
         {isLoading && (

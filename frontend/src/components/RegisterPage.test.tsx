@@ -38,6 +38,10 @@ describe('RegisterPage', () => {
     await user.click(screen.getByRole('button', { name: 'Create Account' }));
 
     expect(screen.getByText('Diary Route')).toBeInTheDocument();
+    expect(localStorage.getItem('userId')).toBe('test-user');
+    expect(localStorage.getItem('userRole')).toBe('USER');
+    expect(localStorage.getItem('userName')).toBe('Tony');
+    expect(localStorage.getItem('userEmail')).toBe('tony@example.com');
   });
 
   it('does not navigate when passwords do not match', async () => {

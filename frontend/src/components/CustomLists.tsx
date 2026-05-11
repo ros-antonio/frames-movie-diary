@@ -1,4 +1,5 @@
 import { ArrowLeft, Plus, Eye, Trash2 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { CustomList, MovieLog } from '../types';
 import { useCustomLists } from '../hooks/useCustomLists';
 
@@ -11,16 +12,18 @@ interface CustomListsProps {
   onDeleteList: (listId: string) => void;
   onAddMovieToList: (listId: string, movieId: string) => void;
   onRemoveMovieFromList: (listId: string, movieId: string) => void;
+  accountMenu?: ReactNode;
 }
 
 export function CustomLists({
                               movieLogs,
                               customLists,
                               onCreateList,
-                              onDeleteList,
-                              onAddMovieToList,
-                              onRemoveMovieFromList,
-                            }: CustomListsProps) {
+  onDeleteList,
+  onAddMovieToList,
+  onRemoveMovieFromList,
+  accountMenu,
+}: CustomListsProps) {
   const {
     showCreateForm,
     newListName,
@@ -40,13 +43,16 @@ export function CustomLists({
   return (
     <div className="min-h-screen p-8" style={{ backgroundColor: '#261834' }}>
       <div className="max-w-6xl mx-auto space-y-6">
-        <button
-          onClick={goBackToDiary}
-          className="flex items-center mb-4 text-[#B9A5D2] hover:text-[#E0BAAA] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Diary
-        </button>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <button
+            onClick={goBackToDiary}
+            className="flex items-center text-[#B9A5D2] transition-colors hover:text-[#E0BAAA]"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Diary
+          </button>
+          {accountMenu}
+        </div>
 
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-4xl font-bold" style={{ color: '#B9A5D2' }}>

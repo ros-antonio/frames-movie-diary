@@ -1,7 +1,8 @@
-import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { MovieInput, MovieLog, SavedFrame } from './types';
+import { AccountMenu } from './components/AccountMenu';
 import { LandingPage } from './components/LandingPage';
 import { MovieDiary } from './components/MovieDiary';
 import { LogNewMovie } from './components/LogNewMovie';
@@ -14,11 +15,13 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { useAppState } from './hooks/useAppState';
 import { useUserActivity } from './hooks/useUserActivity';
 import { movieDiaryApi } from './api/movieDiaryApi';
+import { clearSessionUser, dispatchSessionChanged, readSessionUser } from './utils/session';
 
-function DiaryRoute({ movieLogs, onAddClick, onSelectMovie }: {
+function DiaryRoute({ movieLogs, onAddClick, onSelectMovie, accountMenu }: {
   movieLogs: MovieLog[];
   onAddClick: () => void;
   onSelectMovie: (id: string) => void;
+  accountMenu?: ReactNode;
 }) {
   const navigate = useNavigate();
   const userRole = localStorage.getItem('userRole');
@@ -31,16 +34,18 @@ function DiaryRoute({ movieLogs, onAddClick, onSelectMovie }: {
         onSelectMovie={onSelectMovie}
         onAdminClick={() => navigate('/admin')}
         userRole={userRole}
+        accountMenu={accountMenu}
       />
     </div>
   );
 }
 
-function AddMovieRoute({ onSave }: { onSave: (newMovie: MovieInput) => Promise<boolean> }) {
+function AddMovieRoute({ onSave, accountMenu }: { onSave: (newMovie: MovieInput) => Promise<boolean>; accountMenu?: ReactNode }) {
   const navigate = useNavigate();
 
   return (
     <LogNewMovie
+      accountMenu={accountMenu}
       onSave={async (newMovie) => {
         const saved = await onSave(newMovie);
         if (saved) {
@@ -73,15 +78,17 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 }
 
 function MovieDetailRoute({
-                            movieLogs,
-                            onDelete,
-                            onAddFrame,
-                            onDeleteFrame,
-                          }: {
+  movieLogs,
+  onDelete,
+  onAddFrame,
+  onDeleteFrame,
+  accountMenu,
+}: {
   movieLogs: MovieLog[];
   onDelete: (id: string) => Promise<boolean>;
   onAddFrame: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => Promise<boolean>;
   onDeleteFrame: (movieId: string, frameId: string) => Promise<boolean>;
+  accountMenu?: ReactNode;
 }) {
   const navigate = useNavigate();
   const { movieId } = useParams();
@@ -134,6 +141,7 @@ function MovieDetailRoute({
   return (
     <MovieDetail
       movie={movie}
+      accountMenu={accountMenu}
       onBack={() => navigate('/diary')}
       onDelete={async (id) => {
         const deleted = await onDelete(id);
@@ -148,7 +156,15 @@ function MovieDetailRoute({
   );
 }
 
-function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: (id: string, updatedMovie: MovieInput) => Promise<boolean> }) {
+function EditMovieRoute({
+  movieLogs,
+  onSave,
+  accountMenu,
+}: {
+  movieLogs: MovieLog[];
+  onSave: (id: string, updatedMovie: MovieInput) => Promise<boolean>;
+  accountMenu?: ReactNode;
+}) {
   const navigate = useNavigate();
   const { movieId } = useParams();
 
@@ -199,6 +215,7 @@ function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: 
 
   return (
     <LogNewMovie
+      accountMenu={accountMenu}
       initialData={movie}
       onSave={async (updatedMovie) => {
         const saved = await onSave(movie.id, updatedMovie);
@@ -212,6 +229,7 @@ function EditMovieRoute({ movieLogs, onSave }: { movieLogs: MovieLog[]; onSave: 
 }
 
 export default function App() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { logActivity } = useUserActivity({ trackPageVisits: true });
   const {
@@ -233,12 +251,29 @@ export default function App() {
     handleDeleteFrameFromMovie,
   } = useAppState();
   const [isSyncing, setIsSyncing] = useState(false);
+  const sessionUser = readSessionUser();
+  const showAccountMenu = Boolean(sessionUser) && !['/', '/login', '/register'].includes(location.pathname);
 
   const handleSyncClick = async () => {
     setIsSyncing(true);
     await syncPendingOperations();
     setIsSyncing(false);
   };
+
+  const handleLogout = () => {
+    clearSessionUser();
+    dispatchSessionChanged(null);
+    navigate('/login', { replace: true });
+  };
+
+  const accountMenuNode = showAccountMenu && sessionUser ? (
+    <AccountMenu
+      name={sessionUser.name}
+      email={sessionUser.email}
+      role={sessionUser.role}
+      onLogout={handleLogout}
+    />
+  ) : undefined;
 
   return (
     <>
@@ -284,12 +319,12 @@ export default function App() {
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/statistics" element={<RequireAuth><Statistics movieLogs={movieLogs} /></RequireAuth>} />
+        <Route path="/statistics" element={<RequireAuth><Statistics movieLogs={movieLogs} accountMenu={accountMenuNode} /></RequireAuth>} />
         <Route
           path="/admin"
           element={
             <RequireAdmin>
-              <AdminDashboard onBack={() => navigate('/diary')} />
+              <AdminDashboard onBack={() => navigate('/diary')} accountMenu={accountMenuNode} />
             </RequireAdmin>
           }
         />
@@ -304,6 +339,7 @@ export default function App() {
                 onDeleteList={handleDeleteList}
                 onAddMovieToList={handleAddMovieToList}
                 onRemoveMovieFromList={handleRemoveMovieFromList}
+                accountMenu={accountMenuNode}
               />
             </RequireAuth>
           }
@@ -314,6 +350,7 @@ export default function App() {
             <RequireAuth>
               <DiaryRoute
                 movieLogs={movieLogs}
+                accountMenu={accountMenuNode}
                 onAddClick={() => navigate('/diary/new')}
                 onSelectMovie={(id) => {
                   logActivity({ eventType: 'view', movieId: id, pageRoute: '/diary' });
@@ -323,13 +360,14 @@ export default function App() {
             </RequireAuth>
           }
         />
-        <Route path="/diary/new" element={<RequireAuth><AddMovieRoute onSave={handleAddMovie} /></RequireAuth>} />
+        <Route path="/diary/new" element={<RequireAuth><AddMovieRoute onSave={handleAddMovie} accountMenu={accountMenuNode} /></RequireAuth>} />
         <Route
           path="/diary/:movieId"
           element={
             <RequireAuth>
               <MovieDetailRoute
                 movieLogs={movieLogs}
+                accountMenu={accountMenuNode}
                 onDelete={handleDeleteMovie}
                 onAddFrame={handleAddFrameToMovie}
                 onDeleteFrame={handleDeleteFrameFromMovie}
@@ -339,7 +377,7 @@ export default function App() {
         />
         <Route
           path="/diary/:movieId/edit"
-          element={<RequireAuth><EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} /></RequireAuth>}
+          element={<RequireAuth><EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} accountMenu={accountMenuNode} /></RequireAuth>}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

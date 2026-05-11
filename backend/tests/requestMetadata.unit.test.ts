@@ -13,7 +13,7 @@ function createRequest(input: {
     socket: {
       remoteAddress: input.remoteAddress,
     },
-  } as Request;
+  } as unknown as Request;
 }
 
 describe('request metadata', () => {
