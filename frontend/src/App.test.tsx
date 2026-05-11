@@ -3,6 +3,18 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
+import * as useAppStateModule from './hooks/useAppState';
+
+vi.mock('./hooks/useUserActivity', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./hooks/useUserActivity')>();
+
+  return {
+    ...actual,
+    useUserActivity: () => ({
+      logActivity: vi.fn(),
+    }),
+  };
+});
 
 describe('App', () => {
   beforeEach(() => {
@@ -139,5 +151,44 @@ describe('App', () => {
     renderApp(['/admin']);
 
     expect(await screen.findByRole('heading', { name: 'Admin Dashboard' })).toBeInTheDocument();
+  });
+
+  it('shows sync banner and dismissible operation errors when app state exposes them', async () => {
+    const user = userEvent.setup();
+    const clearOperationError = vi.fn();
+    const syncPendingOperations = vi.fn().mockResolvedValue(undefined);
+
+    const useAppStateSpy = vi.spyOn(useAppStateModule, 'useAppState').mockReturnValue({
+      movieLogs: [],
+      customLists: [],
+      isOffline: true,
+      pendingSyncCount: 2,
+      operationError: 'Something went wrong',
+      clearOperationError,
+      syncPendingOperations,
+      handleAddMovie: vi.fn(),
+      handleUpdateMovie: vi.fn(),
+      handleDeleteMovie: vi.fn(),
+      handleCreateList: vi.fn(),
+      handleDeleteList: vi.fn(),
+      handleAddMovieToList: vi.fn(),
+      handleRemoveMovieFromList: vi.fn(),
+      handleAddFrameToMovie: vi.fn(),
+      handleDeleteFrameFromMovie: vi.fn(),
+    });
+
+    try {
+      renderApp(['/login']);
+
+      expect(screen.getByText(/Offline mode enabled. Pending sync operations: 2./i)).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Sync now' }));
+      expect(syncPendingOperations).toHaveBeenCalledTimes(1);
+
+      await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+      expect(clearOperationError).toHaveBeenCalledTimes(1);
+    } finally {
+      useAppStateSpy.mockRestore();
+    }
   });
 });

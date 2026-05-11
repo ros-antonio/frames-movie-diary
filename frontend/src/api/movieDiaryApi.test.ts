@@ -136,6 +136,23 @@ describe('movieDiaryApi error handling', () => {
     expect(error.message).toBe('Conflict');
   });
 
+  it('includes validation detail messages when the backend provides them', async () => {
+    mockFetchResponse({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        message: 'Validation failed',
+        details: [{ message: 'Email is required' }],
+      }),
+    });
+
+    await expect(movieDiaryApi.login({ email: '', password: 'password123' })).rejects.toMatchObject({
+      name: 'ApiHttpError',
+      status: 400,
+      message: 'Validation failed: Email is required',
+    });
+  });
+
   it('calls all API wrapper methods with expected routes and methods', async () => {
     const fetchMock = vi
       .fn()
@@ -248,6 +265,58 @@ describe('movieDiaryApi error handling', () => {
 
     expect(lists).toHaveLength(1);
     expect(String(fetchMock.mock.calls[0][0])).toContain('/lists?page=1&pageSize=100');
+  });
+
+  it('calls admin API wrapper methods with expected routes and methods', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ([
+          { id: 'user-1', name: 'Admin', email: 'admin@example.com', role: 'ADMIN', permissions: [], movieCount: 0, listCount: 0 },
+        ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ([
+          { id: 'obs-1', userId: 'user-2', userName: 'User', userEmail: 'user@example.com', role: 'USER', reason: 'REPEATED_FAILED_LOGINS', score: 3, status: 'OBSERVED', firstDetectedAt: '2026-05-01T00:00:00.000Z', lastDetectedAt: '2026-05-01T00:00:00.000Z' },
+        ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 'obs-1', status: 'REVIEWED' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 'obs-1', status: 'CLEARED' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: async () => ({}),
+      });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await movieDiaryApi.getUsers();
+    await movieDiaryApi.getSuspiciousUsers();
+    await movieDiaryApi.markSuspiciousUserReviewed('obs-1');
+    await movieDiaryApi.clearSuspiciousUser('obs-1');
+    await movieDiaryApi.deleteUser('user-2');
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/users');
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/users/suspicious');
+    expect(String(fetchMock.mock.calls[2][0])).toContain('/users/suspicious/obs-1/review');
+    expect(fetchMock.mock.calls[2][1]?.method).toBe('POST');
+    expect(String(fetchMock.mock.calls[3][0])).toContain('/users/suspicious/obs-1/clear');
+    expect(fetchMock.mock.calls[3][1]?.method).toBe('POST');
+    expect(String(fetchMock.mock.calls[4][0])).toContain('/users/user-2');
+    expect(fetchMock.mock.calls[4][1]?.method).toBe('DELETE');
   });
 });
 

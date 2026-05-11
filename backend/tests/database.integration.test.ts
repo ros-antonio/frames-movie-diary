@@ -167,6 +167,56 @@ describe('database role and ownership behavior', () => {
     );
   });
 
+  it('allows admins to review and clear suspicious users', async () => {
+    const observation = await prisma.suspiciousUser.create({
+      data: {
+        userId: TEST_USER_ID,
+        reason: 'REPEATED_FAILED_LOGINS',
+        score: 3,
+        status: 'OBSERVED',
+      },
+    });
+
+    const reviewResponse = await request(app)
+      .post(`/api/users/suspicious/${observation.id}/review`)
+      .set(authHeader(TEST_ADMIN_ID, 'ADMIN'));
+
+    expect(reviewResponse.status).toBe(200);
+    expect(reviewResponse.body).toEqual(
+      expect.objectContaining({
+        id: observation.id,
+        status: 'REVIEWED',
+        userId: TEST_USER_ID,
+        userEmail: 'testuser@example.com',
+        role: 'USER',
+      }),
+    );
+
+    const reviewed = await prisma.suspiciousUser.findUniqueOrThrow({
+      where: { id: observation.id },
+    });
+    expect(reviewed.reviewedById).toBe(TEST_ADMIN_ID);
+    expect(reviewed.reviewedAt).toBeTruthy();
+
+    const clearResponse = await request(app)
+      .post(`/api/users/suspicious/${observation.id}/clear`)
+      .set(authHeader(TEST_ADMIN_ID, 'ADMIN'));
+
+    expect(clearResponse.status).toBe(200);
+    expect(clearResponse.body).toEqual(
+      expect.objectContaining({
+        id: observation.id,
+        status: 'CLEARED',
+      }),
+    );
+
+    const cleared = await prisma.suspiciousUser.findUniqueOrThrow({
+      where: { id: observation.id },
+    });
+    expect(cleared.status).toBe('CLEARED');
+    expect(cleared.reviewedById).toBe(TEST_ADMIN_ID);
+  });
+
   it('allows admin to delete another user and cascades all owned data', async () => {
     await createTestUser({
       id: TEST_OTHER_USER_ID,
@@ -215,5 +265,20 @@ describe('database role and ownership behavior', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toBe('Admins cannot delete their own account');
+  });
+
+  it('returns 404 when admin reviews or deletes unknown user resources', async () => {
+    const missingReview = await request(app)
+      .post('/api/users/suspicious/missing-observation/review')
+      .set(authHeader(TEST_ADMIN_ID, 'ADMIN'));
+
+    const missingDelete = await request(app)
+      .delete('/api/users/missing-user')
+      .set(authHeader(TEST_ADMIN_ID, 'ADMIN'));
+
+    expect(missingReview.status).toBe(404);
+    expect(missingReview.body.message).toBe('Suspicious observation not found');
+    expect(missingDelete.status).toBe(404);
+    expect(missingDelete.body.message).toBe('User not found');
   });
 });
