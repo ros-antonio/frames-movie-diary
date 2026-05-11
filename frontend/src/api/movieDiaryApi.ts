@@ -1,4 +1,4 @@
-import type { AdminUser, AuthUser, CustomList, MovieInput, MovieLog, SavedFrame, StatisticsOverview } from '../types';
+import type { AdminUser, AuthUser, CustomList, MovieInput, MovieLog, SavedFrame, StatisticsOverview, SuspiciousObservation } from '../types';
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -68,6 +68,9 @@ export interface MovieDiaryApi {
   login(input: { email: string; password: string }): Promise<AuthResponse>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
   getUsers(): Promise<AdminUser[]>;
+  getSuspiciousUsers(): Promise<SuspiciousObservation[]>;
+  markSuspiciousUserReviewed(observationId: string): Promise<SuspiciousObservation>;
+  clearSuspiciousUser(observationId: string): Promise<SuspiciousObservation>;
   deleteUser(userId: string): Promise<void>;
 }
 
@@ -242,6 +245,22 @@ export const movieDiaryApi: MovieDiaryApi = {
 
   getUsers() {
     return request<AdminUser[]>('/users');
+  },
+
+  getSuspiciousUsers() {
+    return request<SuspiciousObservation[]>('/users/suspicious');
+  },
+
+  markSuspiciousUserReviewed(observationId: string) {
+    return request<SuspiciousObservation>(`/users/suspicious/${observationId}/review`, {
+      method: 'POST',
+    });
+  },
+
+  clearSuspiciousUser(observationId: string) {
+    return request<SuspiciousObservation>(`/users/suspicious/${observationId}/clear`, {
+      method: 'POST',
+    });
   },
 
   deleteUser(userId: string) {

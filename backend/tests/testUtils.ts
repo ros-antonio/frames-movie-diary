@@ -42,11 +42,11 @@ export function authCookie(userId = TEST_USER_ID, role = 'USER') {
 }
 
 export async function resetStore(): Promise<void> {
-  if (!process.env.DATABASE_URL?.includes('frames_test')) {
+  if (!process.env.DATABASE_URL?.includes('_test')) {
     throw new Error(`STOP: Attempted to run tests against a non-test database! URL: ${process.env.DATABASE_URL}`);
   }
 
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE "ListMovie", "Frame", "CustomList", "Movie", "User", "Role", "Permission" CASCADE');
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "AuditLog", "SuspiciousUser", "ListMovie", "Frame", "CustomList", "Movie", "User", "Role", "Permission" CASCADE');
 
   const adminPermissionRows = await Promise.all(
     ADMIN_PERMISSIONS.map((name) => prisma.permission.create({ data: { name } })),

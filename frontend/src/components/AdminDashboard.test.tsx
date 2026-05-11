@@ -31,19 +31,38 @@ describe('AdminDashboard', () => {
         listCount: 1,
       },
     ]);
+    vi.spyOn(movieDiaryApi, 'getSuspiciousUsers').mockResolvedValue([
+      {
+        id: 'obs-1',
+        userId: 'user-1',
+        userName: 'Normal User',
+        userEmail: 'user@example.com',
+        role: 'USER',
+        reason: 'REPEATED_FAILED_LOGINS',
+        score: 3,
+        status: 'OBSERVED',
+        firstDetectedAt: '2026-05-04T18:00:00.000Z',
+        lastDetectedAt: '2026-05-04T18:05:00.000Z',
+      },
+    ]);
 
     render(<AdminDashboard onBack={vi.fn()} />);
 
     expect(screen.getByText('Loading users...')).toBeInTheDocument();
     expect(await screen.findByText('Admin User')).toBeInTheDocument();
-    expect(screen.getByText('Normal User')).toBeInTheDocument();
+    expect(screen.getAllByText('Normal User')).toHaveLength(2);
     expect(screen.getByText('ADMIN_VIEW_USERS, MOVIE_READ_ALL')).toBeInTheDocument();
+    expect(screen.getByText('Suspicious Activity Observation List')).toBeInTheDocument();
+    expect(screen.getByText('REPEATED_FAILED_LOGINS')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mark reviewed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
   });
 
   it('shows load errors and supports back navigation', async () => {
     const user = userEvent.setup();
     const onBack = vi.fn();
     vi.spyOn(movieDiaryApi, 'getUsers').mockRejectedValue(new Error('Forbidden'));
+    vi.spyOn(movieDiaryApi, 'getSuspiciousUsers').mockResolvedValue([]);
 
     render(<AdminDashboard onBack={onBack} />);
 
@@ -55,11 +74,80 @@ describe('AdminDashboard', () => {
 
   it('renders an empty state when there are no users', async () => {
     vi.spyOn(movieDiaryApi, 'getUsers').mockResolvedValue([]);
+    vi.spyOn(movieDiaryApi, 'getSuspiciousUsers').mockResolvedValue([]);
 
     render(<AdminDashboard onBack={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText('No users found.')).toBeInTheDocument();
+    });
+  });
+
+  it('marks suspicious users as reviewed and clears them explicitly', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(movieDiaryApi, 'getUsers').mockResolvedValue([]);
+    vi.spyOn(movieDiaryApi, 'getSuspiciousUsers').mockResolvedValue([
+      {
+        id: 'obs-1',
+        userId: 'user-1',
+        userName: 'Normal User',
+        userEmail: 'user@example.com',
+        role: 'USER',
+        reason: 'REPEATED_FAILED_LOGINS',
+        score: 3,
+        status: 'OBSERVED',
+        firstDetectedAt: '2026-05-04T18:00:00.000Z',
+        lastDetectedAt: '2026-05-04T18:05:00.000Z',
+      },
+    ]);
+    vi.spyOn(movieDiaryApi, 'markSuspiciousUserReviewed').mockResolvedValue({
+      id: 'obs-1',
+      userId: 'user-1',
+      userName: 'Normal User',
+      userEmail: 'user@example.com',
+      role: 'USER',
+      reason: 'REPEATED_FAILED_LOGINS',
+      score: 3,
+      status: 'REVIEWED',
+      firstDetectedAt: '2026-05-04T18:00:00.000Z',
+      lastDetectedAt: '2026-05-04T18:05:00.000Z',
+      reviewedAt: '2026-05-04T18:07:00.000Z',
+    });
+    vi.spyOn(movieDiaryApi, 'clearSuspiciousUser').mockResolvedValue({
+      id: 'obs-1',
+      userId: 'user-1',
+      userName: 'Normal User',
+      userEmail: 'user@example.com',
+      role: 'USER',
+      reason: 'REPEATED_FAILED_LOGINS',
+      score: 3,
+      status: 'CLEARED',
+      firstDetectedAt: '2026-05-04T18:00:00.000Z',
+      lastDetectedAt: '2026-05-04T18:05:00.000Z',
+      reviewedAt: '2026-05-04T18:10:00.000Z',
+    });
+
+    render(<AdminDashboard onBack={vi.fn()} />);
+
+    expect(await screen.findByText('REPEATED_FAILED_LOGINS')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Mark reviewed' }));
+
+    await waitFor(() => {
+      expect(movieDiaryApi.markSuspiciousUserReviewed).toHaveBeenCalledWith('obs-1');
+    });
+
+    expect(screen.queryByRole('button', { name: 'Mark reviewed' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+
+    await waitFor(() => {
+      expect(movieDiaryApi.clearSuspiciousUser).toHaveBeenCalledWith('obs-1');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('No suspicious users flagged.')).toBeInTheDocument();
     });
   });
 
@@ -87,6 +175,7 @@ describe('AdminDashboard', () => {
         listCount: 2,
       },
     ]);
+    vi.spyOn(movieDiaryApi, 'getSuspiciousUsers').mockResolvedValue([]);
 
     vi.spyOn(movieDiaryApi, 'deleteUser').mockResolvedValue();
     vi.spyOn(window, 'confirm').mockReturnValue(true);

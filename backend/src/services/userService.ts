@@ -1,7 +1,12 @@
+import type { SuspiciousObservation } from '../types.js';
 import { prisma } from '../repositories/prismaClient.js';
 import { HttpError } from '../utils/httpError.js';
 
 class UserService {
+  private toIsoString(value: Date): string {
+    return value.toISOString();
+  }
+
   async listUsers() {
     const users = await prisma.user.findMany({
       include: {
@@ -53,6 +58,76 @@ class UserService {
       deletedMovieCount: user._count.movies,
       deletedListCount: user._count.lists,
     };
+  }
+
+  async listSuspiciousUsers(): Promise<SuspiciousObservation[]> {
+    const suspiciousUsers = await prisma.suspiciousUser.findMany({
+      include: {
+        user: {
+          include: {
+            role: true,
+          },
+        },
+      },
+      orderBy: [
+        { score: 'desc' },
+        { lastDetectedAt: 'desc' },
+      ],
+    });
+
+    return suspiciousUsers.map((entry) => ({
+      id: entry.id,
+      userId: entry.userId,
+      userName: entry.user.name,
+      userEmail: entry.user.email,
+      role: entry.user.role.name,
+      reason: entry.reason,
+      score: entry.score,
+      status: entry.status,
+      firstDetectedAt: this.toIsoString(entry.firstDetectedAt),
+      lastDetectedAt: this.toIsoString(entry.lastDetectedAt),
+      reviewedAt: entry.reviewedAt ? this.toIsoString(entry.reviewedAt) : undefined,
+    }));
+  }
+
+  async updateSuspiciousUserStatus(observationId: string, status: 'REVIEWED' | 'CLEARED', reviewedById: string) {
+    const existing = await prisma.suspiciousUser.findUnique({
+      where: { id: observationId },
+    });
+
+    if (!existing) {
+      throw new HttpError(404, 'Suspicious observation not found');
+    }
+
+    const updated = await prisma.suspiciousUser.update({
+      where: { id: observationId },
+      data: {
+        status,
+        reviewedById,
+        reviewedAt: new Date(),
+      },
+      include: {
+        user: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: updated.id,
+      userId: updated.userId,
+      userName: updated.user.name,
+      userEmail: updated.user.email,
+      role: updated.user.role.name,
+      reason: updated.reason,
+      score: updated.score,
+      status: updated.status,
+      firstDetectedAt: this.toIsoString(updated.firstDetectedAt),
+      lastDetectedAt: this.toIsoString(updated.lastDetectedAt),
+      reviewedAt: updated.reviewedAt ? this.toIsoString(updated.reviewedAt) : undefined,
+    } satisfies SuspiciousObservation;
   }
 }
 

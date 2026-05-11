@@ -138,6 +138,35 @@ describe('database role and ownership behavior', () => {
     );
   });
 
+  it('exposes suspicious users to admins only', async () => {
+    await prisma.suspiciousUser.create({
+      data: {
+        userId: TEST_USER_ID,
+        reason: 'REPEATED_FAILED_LOGINS',
+        score: 3,
+        status: 'OBSERVED',
+      },
+    });
+
+    const forbidden = await request(app).get('/api/users/suspicious').set(authHeader(TEST_USER_ID, 'USER'));
+    const allowed = await request(app).get('/api/users/suspicious').set(authHeader(TEST_ADMIN_ID, 'ADMIN'));
+
+    expect(forbidden.status).toBe(403);
+    expect(allowed.status).toBe(200);
+    expect(allowed.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: TEST_USER_ID,
+          userEmail: 'testuser@example.com',
+          role: 'USER',
+          reason: 'REPEATED_FAILED_LOGINS',
+          score: 3,
+          status: 'OBSERVED',
+        }),
+      ]),
+    );
+  });
+
   it('allows admin to delete another user and cascades all owned data', async () => {
     await createTestUser({
       id: TEST_OTHER_USER_ID,
