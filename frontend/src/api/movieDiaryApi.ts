@@ -66,6 +66,7 @@ export interface MovieDiaryApi {
   removeMovieFromList(listId: string, movieId: string): Promise<CustomList>;
   register(input: { name: string; email: string; password: string; confirmPassword: string }): Promise<AuthResponse>;
   login(input: { email: string; password: string }): Promise<AuthResponse>;
+  logout(): Promise<void>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
   getUsers(): Promise<AdminUser[]>;
   getSuspiciousUsers(): Promise<SuspiciousObservation[]>;
@@ -75,6 +76,7 @@ export interface MovieDiaryApi {
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api';
+const AUTH_EXPIRED_EVENT = 'authExpired';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
@@ -115,6 +117,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       }
     } catch { /* empty */ }
 
+    if (response.status === 401 && !path.startsWith('/auth/')) {
+      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+    }
+
     throw new ApiHttpError(response.status, message);
   }
 
@@ -153,6 +159,12 @@ export function loginUser(input: { email: string; password: string }) {
   return request<AuthResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+export function logoutUser() {
+  return request<void>('/auth/logout', {
+    method: 'POST',
   });
 }
 
@@ -237,6 +249,10 @@ export const movieDiaryApi: MovieDiaryApi = {
 
   login(input: { email: string; password: string }) {
     return loginUser(input);
+  },
+
+  logout() {
+    return logoutUser();
   },
 
   getStatisticsOverview() {

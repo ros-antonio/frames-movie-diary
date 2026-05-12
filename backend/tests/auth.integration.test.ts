@@ -24,6 +24,9 @@ describe('auth API', () => {
     });
     expect(registerResponse.body.user.id).toBeTypeOf('string');
     expect(registerResponse.body.token).toBeTypeOf('string');
+    expect(registerResponse.headers['set-cookie']).toEqual(
+      expect.arrayContaining([expect.stringContaining('frames_auth=')]),
+    );
 
     const loginResponse = await request(app).post('/api/auth/login').send({
       email: 'TONY@EXAMPLE.COM',
@@ -38,6 +41,9 @@ describe('auth API', () => {
       role: 'USER',
     });
     expect(loginResponse.body.token).toBeTypeOf('string');
+    expect(loginResponse.headers['set-cookie']).toEqual(
+      expect.arrayContaining([expect.stringContaining('frames_auth=')]),
+    );
   });
 
   it('rejects duplicate registration by email', async () => {
@@ -117,6 +123,15 @@ describe('auth API', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toBe('Validation failed');
+  });
+
+  it('clears the auth cookie on logout', async () => {
+    const response = await request(app).post('/api/auth/logout').send();
+
+    expect(response.status).toBe(204);
+    expect(response.headers['set-cookie']).toEqual(
+      expect.arrayContaining([expect.stringContaining('frames_auth=;')]),
+    );
   });
 });
 

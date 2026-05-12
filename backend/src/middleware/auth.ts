@@ -4,6 +4,7 @@ import { HttpError } from '../utils/httpError.js';
 import { config } from '../config.js';
 import { suspiciousActivityService } from '../services/suspiciousActivityService.js';
 import { getRequestIp } from '../utils/requestMetadata.js';
+import { getCookieToken, setAuthCookie, signAuthToken } from '../utils/authSession.js';
 
 declare global {
   namespace Express {
@@ -29,11 +30,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   }
 
   const authHeader = req.headers.authorization;
-  const cookieToken = req.headers.cookie
-    ?.split(';')
-    .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith('frames_auth='))
-    ?.split('=')[1];
+  const cookieToken = getCookieToken(req);
 
   if (!authHeader?.startsWith('Bearer ') && !cookieToken) {
     throw new HttpError(401, 'Authentication required: Missing or invalid token');
@@ -47,6 +44,9 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
     const decoded = jwt.verify(token, config.jwtSecret) as { userId: string, role: string };
 
     req.user = decoded;
+    if (cookieToken && !authHeader?.startsWith('Bearer ')) {
+      setAuthCookie(res, signAuthToken({ userId: decoded.userId, role: decoded.role }));
+    }
     next();
   } catch (error) {
     next(new HttpError(401, 'Invalid or expired token'));

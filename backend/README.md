@@ -38,6 +38,16 @@
     npm run dev
     ```
    - Server uses the `.env` database (development).
+   - The backend now serves HTTPS on port `4000`.
+   - If `SSL_KEY_PATH` and `SSL_CERT_PATH` are not set, development mode generates a temporary self-signed certificate automatically.
+   - In production, `SSL_KEY_PATH` and `SSL_CERT_PATH` are required.
+
+## Session and HTTPS notes
+
+- Auth uses JWT cookies with sliding expiration.
+- `SESSION_IDLE_TIMEOUT_MINUTES` controls both token lifetime and idle logout window.
+- The frontend dev server proxies `/api` traffic to `https://localhost:4000`.
+- For a LAN demo, point the frontend at the backend machine over HTTPS, or keep using the frontend HTTPS proxy with the backend hosted on the other machine.
 
 ## Main endpoints
 

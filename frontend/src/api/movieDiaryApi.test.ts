@@ -153,6 +153,26 @@ describe('movieDiaryApi error handling', () => {
     });
   });
 
+  it('dispatches authExpired when the backend returns 401', async () => {
+    const authExpiredListener = vi.fn();
+    window.addEventListener('authExpired', authExpiredListener);
+
+    mockFetchResponse({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: 'Invalid or expired token' }),
+    });
+
+    await expect(movieDiaryApi.getAllMovies()).rejects.toMatchObject({
+      name: 'ApiHttpError',
+      status: 401,
+      message: 'Invalid or expired token',
+    });
+
+    expect(authExpiredListener).toHaveBeenCalledTimes(1);
+    window.removeEventListener('authExpired', authExpiredListener);
+  });
+
   it('calls all API wrapper methods with expected routes and methods', async () => {
     const fetchMock = vi
       .fn()
@@ -195,6 +215,11 @@ describe('movieDiaryApi error handling', () => {
         ok: true,
         status: 200,
         json: async () => ({ id: 'u1', name: 'Tony', email: 'tony@example.com' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: async () => ({}),
       });
 
     vi.stubGlobal('fetch', fetchMock);
@@ -212,8 +237,9 @@ describe('movieDiaryApi error handling', () => {
       confirmPassword: 'password123',
     });
     await movieDiaryApi.login({ email: 'tony@example.com', password: 'password123' });
+    await movieDiaryApi.logout();
 
-    expect(fetchMock).toHaveBeenCalledTimes(8);
+    expect(fetchMock).toHaveBeenCalledTimes(9);
     expect(fetchMock.mock.calls[0][1]?.method).toBe('POST');
     expect(String(fetchMock.mock.calls[0][0])).toContain('/lists');
     expect(fetchMock.mock.calls[1][1]?.method).toBe('DELETE');
@@ -226,6 +252,8 @@ describe('movieDiaryApi error handling', () => {
     expect(fetchMock.mock.calls[5][1]?.method).toBe('DELETE');
     expect(String(fetchMock.mock.calls[6][0])).toContain('/auth/register');
     expect(String(fetchMock.mock.calls[7][0])).toContain('/auth/login');
+    expect(String(fetchMock.mock.calls[8][0])).toContain('/auth/logout');
+    expect(fetchMock.mock.calls[8][1]?.method).toBe('POST');
   });
 
   it('calls updateMovie with PUT and movie id in route', async () => {

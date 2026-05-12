@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearSessionUser,
   dispatchSessionChanged,
+  hasSessionTimedOut,
   persistSessionUser,
   persistTestSessionUser,
+  readLastSessionActivity,
   readSessionUser,
+  updateSessionActivity,
 } from './session';
 
 describe('session utilities', () => {
@@ -71,5 +74,16 @@ describe('session utilities', () => {
     expect(event.detail).toEqual({ userId: 'user-3' });
 
     window.removeEventListener('userIdChanged', listener);
+  });
+
+  it('tracks and clears session activity timestamps', () => {
+    updateSessionActivity(1234);
+
+    expect(readLastSessionActivity()).toBe(1234);
+    expect(hasSessionTimedOut(1234 + 1000, 500)).toBe(true);
+
+    clearSessionUser();
+
+    expect(readLastSessionActivity()).toBeNull();
   });
 });

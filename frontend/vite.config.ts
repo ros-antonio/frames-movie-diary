@@ -6,13 +6,15 @@ import mkcert from 'vite-plugin-mkcert'
 export default defineConfig({
   plugins: [react(), tailwindcss(), mkcert()],
   server: {
+    port: Number(process.env.PORT ?? 5173),
     host: true,
     // @ts-expect-error: Vite handles this boolean at runtime with the mkcert plugin
     https: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:4000',
+        target: process.env.VITE_BACKEND_URL ?? `https://localhost:${process.env.VITE_BACKEND_PORT ?? 4000}`,
         changeOrigin: true,
+        secure: false,
       }
     }
   },

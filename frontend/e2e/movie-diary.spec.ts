@@ -1,10 +1,14 @@
 import { test, expect } from '@playwright/test';
 
+function uniqueEmail(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+}
+
 async function registerAndOpenDiary(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Register' }).click();
   await page.locator('#name').fill('Movie Enthusiast');
-  await page.locator('#email').fill('movies@example.com');
+  await page.locator('#email').fill(uniqueEmail('movies'));
   await page.locator('#password').fill('MoviePass123');
   await page.locator('#confirmPassword').fill('MoviePass123');
   await page.locator('form button[type="submit"]').click();

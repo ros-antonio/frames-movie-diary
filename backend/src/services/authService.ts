@@ -1,8 +1,7 @@
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { HttpError } from '../utils/httpError.js';
 import { prisma } from '../repositories/prismaClient.js';
-import { config } from '../config.js';
+import { signAuthToken } from '../utils/authSession.js';
 
 interface RegisterInput {
   name: string;
@@ -65,11 +64,7 @@ class AuthService {
       },
     });
 
-    const token = jwt.sign(
-      { userId: user.id, role: user.role.name },
-      config.jwtSecret,
-      { expiresIn: '1d' }
-    );
+    const token = signAuthToken({ userId: user.id, role: user.role.name });
 
     return {
       user: {
@@ -94,11 +89,7 @@ class AuthService {
       throw new HttpError(401, 'Invalid email or password');
     }
 
-    const token = jwt.sign(
-      { userId: user.id, role: user.role.name },
-      config.jwtSecret,
-      { expiresIn: '1d' }
-    );
+    const token = signAuthToken({ userId: user.id, role: user.role.name });
 
     return {
       user: {

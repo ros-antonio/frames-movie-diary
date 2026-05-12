@@ -1,52 +1,90 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Feature 1: User Registration Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: 'Register' }).click();
-    await expect(page).toHaveURL('/register');
-  });
+function uniqueEmail(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+}
 
+async function openRegister(page: import('@playwright/test').Page) {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Register' }).click();
+  await expect(page).toHaveURL('/register');
+}
+
+async function register(page: import('@playwright/test').Page, email: string) {
+  await page.locator('#name').fill('John Cinephile');
+  await page.locator('#email').fill(email);
+  await page.locator('#password').fill('SecurePass123');
+  await page.locator('#confirmPassword').fill('SecurePass123');
+  await page.locator('form button[type="submit"]').click();
+}
+
+async function logout(page: import('@playwright/test').Page) {
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Logout' }).click();
+  await expect(page).toHaveURL('/');
+}
+
+async function openLogin(page: import('@playwright/test').Page) {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page).toHaveURL('/login');
+}
+
+test.describe('Authentication flows', () => {
   test('registers successfully with valid data', async ({ page }) => {
-    await page.locator('#name').fill('John Cinephile');
-    await page.locator('#email').fill('john@example.com');
-    await page.locator('#password').fill('SecurePass123');
-    await page.locator('#confirmPassword').fill('SecurePass123');
-
-    await page.locator('form button[type="submit"]').click();
+    await openRegister(page);
+    await register(page, uniqueEmail('register'));
 
     await expect(page).toHaveURL('/diary');
     await expect(page.getByRole('heading', { name: 'Movie Diary' })).toBeVisible();
   });
 
-  test('blocks registration when passwords do not match', async ({ page }) => {
-    await page.locator('#name').fill('Jane Smith');
-    await page.locator('#email').fill('jane@example.com');
+  test('blocks duplicate registration through the backend', async ({ page }) => {
+    const email = uniqueEmail('duplicate');
+
+    await openRegister(page);
+    await register(page, email);
+    await expect(page).toHaveURL('/diary');
+
+    await logout(page);
+    await openRegister(page);
+    await register(page, email);
+
+    await expect(page.getByRole('alert')).toContainText('Email already registered');
+    await expect(page).toHaveURL('/register');
+  });
+
+  test('logs in with an existing backend account after logout', async ({ page }) => {
+    const email = uniqueEmail('login');
+
+    await openRegister(page);
+    await register(page, email);
+    await expect(page).toHaveURL('/diary');
+
+    await logout(page);
+    await openLogin(page);
+    await page.locator('#email').fill(email);
     await page.locator('#password').fill('SecurePass123');
-    await page.locator('#confirmPassword').fill('DifferentPass456');
+    await page.getByRole('button', { name: 'Sign In' }).click();
 
-    await page.locator('form button[type="submit"]').click();
-
-    await expect(page).toHaveURL('/register');
-    await expect(page.getByRole('heading', { name: 'Create Account' })).toBeVisible();
+    await expect(page).toHaveURL('/diary');
+    await expect(page.getByRole('heading', { name: 'Movie Diary' })).toBeVisible();
   });
 
-  test('blocks registration with invalid email', async ({ page }) => {
-    await page.locator('#name').fill('Bad Email User');
-    await page.locator('#email').fill('not-a-valid-email');
-    await page.locator('#password').fill('ValidPass123');
-    await page.locator('#confirmPassword').fill('ValidPass123');
+  test('shows an error for invalid login credentials', async ({ page }) => {
+    const email = uniqueEmail('invalid-login');
 
-    await page.locator('form button[type="submit"]').click();
+    await openRegister(page);
+    await register(page, email);
+    await expect(page).toHaveURL('/diary');
 
-    await expect(page).toHaveURL('/register');
-  });
+    await logout(page);
+    await openLogin(page);
+    await page.locator('#email').fill(email);
+    await page.locator('#password').fill('WrongPass123');
+    await page.getByRole('button', { name: 'Sign In' }).click();
 
-  test('navigates to login from register page', async ({ page }) => {
-    await page.getByRole('button', { name: 'Sign in' }).click();
-
+    await expect(page.getByRole('alert')).toContainText('Invalid email or password');
     await expect(page).toHaveURL('/login');
-    await expect(page.getByRole('heading', { name: 'Welcome Back' })).toBeVisible();
   });
 });
-

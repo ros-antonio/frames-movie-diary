@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import * as useAppStateModule from './hooks/useAppState';
+import { movieDiaryApi } from './api/movieDiaryApi';
+import { SESSION_IDLE_TIMEOUT_MS } from './utils/session';
 
 vi.mock('./hooks/useUserActivity', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./hooks/useUserActivity')>();
@@ -18,10 +20,12 @@ vi.mock('./hooks/useUserActivity', async (importOriginal) => {
 
 describe('App', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     let counter = 1;
     vi.spyOn(crypto, 'randomUUID').mockImplementation(() =>
       `00000000-0000-4000-8000-${String(counter++).padStart(12, '0')}`,
     );
+    vi.spyOn(movieDiaryApi, 'logout').mockResolvedValue(undefined);
   });
 
   async function addMovie(container: HTMLElement, user: ReturnType<typeof userEvent.setup>, title: string, date: string) {
@@ -132,7 +136,7 @@ describe('App', () => {
   it('redirects protected routes to login when there is no session', async () => {
     renderApp(['/diary']);
 
-    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Frames' })).toBeInTheDocument();
   });
 
   it('redirects non-admin users away from admin route', async () => {
@@ -173,11 +177,28 @@ describe('App', () => {
 
     await user.click(screen.getByRole('menuitem', { name: 'Logout' }));
 
-    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Frames' })).toBeInTheDocument();
+    expect(movieDiaryApi.logout).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem('userId')).toBeNull();
     expect(localStorage.getItem('userRole')).toBeNull();
     expect(localStorage.getItem('userName')).toBeNull();
     expect(localStorage.getItem('userEmail')).toBeNull();
+  });
+
+  it('logs the user out after inactivity', async () => {
+    localStorage.setItem('userId', 'test-user');
+    localStorage.setItem('userRole', 'USER');
+    localStorage.setItem('userName', 'Tony Stark');
+    localStorage.setItem('userEmail', 'tony@example.com');
+    localStorage.setItem('sessionLastActivityAt', String(Date.now() - SESSION_IDLE_TIMEOUT_MS - 1));
+
+    renderApp(['/diary']);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Frames' })).toBeInTheDocument();
+    });
+    expect(movieDiaryApi.logout).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('userId')).toBeNull();
   });
 
   it('shows sync banner and dismissible operation errors when app state exposes them', async () => {

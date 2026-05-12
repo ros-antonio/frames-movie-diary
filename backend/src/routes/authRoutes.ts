@@ -1,25 +1,13 @@
 import { Router } from 'express';
-import type { Response } from 'express';
 import { validate } from '../middleware/validate.js';
 import { loginSchema, registerSchema } from '../validators/authSchemas.js';
 import { authService } from '../services/authService.js';
 import { auditLogService } from '../services/auditLogService.js';
 import { suspiciousActivityService } from '../services/suspiciousActivityService.js';
 import { getRequestIp } from '../utils/requestMetadata.js';
+import { clearAuthCookie, setAuthCookie } from '../utils/authSession.js';
 
 const authRoutes = Router();
-const authCookieName = 'frames_auth';
-const oneDayInMs = 24 * 60 * 60 * 1000;
-
-function setAuthCookie(res: Response, token: string) {
-  res.cookie(authCookieName, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: oneDayInMs,
-    path: '/',
-  });
-}
 
 authRoutes.post('/register', validate(registerSchema, 'body'), async (req, res, next) => {
   try {
@@ -58,6 +46,11 @@ authRoutes.post('/login', validate(loginSchema, 'body'), async (req, res, next) 
     await suspiciousActivityService.recordFailedLogin(req.body.email, getRequestIp(req));
     next(error);
   }
+});
+
+authRoutes.post('/logout', (_req, res) => {
+  clearAuthCookie(res);
+  res.status(204).send();
 });
 
 export { authRoutes };

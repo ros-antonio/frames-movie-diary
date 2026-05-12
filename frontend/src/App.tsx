@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { MovieInput, MovieLog, SavedFrame } from './types';
 import { AccountMenu } from './components/AccountMenu';
@@ -15,7 +15,16 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { useAppState } from './hooks/useAppState';
 import { useUserActivity } from './hooks/useUserActivity';
 import { movieDiaryApi } from './api/movieDiaryApi';
-import { clearSessionUser, dispatchSessionChanged, readSessionUser } from './utils/session';
+import {
+  clearSessionUser,
+  dispatchSessionChanged,
+  hasSessionTimedOut,
+  readSessionUser,
+  updateSessionActivity,
+} from './utils/session';
+
+const LOGOUT_ACTIVITY_EVENTS: Array<keyof WindowEventMap> = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+const SESSION_CHECK_INTERVAL_MS = 30 * 1000;
 
 function DiaryRoute({ movieLogs, onAddClick, onSelectMovie, accountMenu }: {
   movieLogs: MovieLog[];
@@ -59,7 +68,7 @@ function AddMovieRoute({ onSave, accountMenu }: { onSave: (newMovie: MovieInput)
 
 function RequireAuth({ children }: { children: ReactNode }) {
   if (!localStorage.getItem('userId')) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -67,7 +76,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 function RequireAdmin({ children }: { children: ReactNode }) {
   if (!localStorage.getItem('userId')) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (localStorage.getItem('userRole') !== 'ADMIN') {
@@ -253,6 +262,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const sessionUser = readSessionUser();
   const showAccountMenu = Boolean(sessionUser) && !['/', '/login', '/register'].includes(location.pathname);
+  const lastActivityWriteRef = useRef(0);
 
   const handleSyncClick = async () => {
     setIsSyncing(true);
@@ -260,11 +270,75 @@ export default function App() {
     setIsSyncing(false);
   };
 
-  const handleLogout = () => {
+  const performLogout = useCallback(async (syncBackend: boolean) => {
+    if (syncBackend) {
+      try {
+        await movieDiaryApi.logout();
+      } catch {
+        // Clearing local state still prevents stale sessions in the UI.
+      }
+    }
+
     clearSessionUser();
     dispatchSessionChanged(null);
-    navigate('/login', { replace: true });
+    navigate('/', { replace: true });
+  }, [navigate]);
+
+  const handleLogout = () => {
+    void performLogout(true);
   };
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      void performLogout(false);
+    };
+
+    window.addEventListener('authExpired', handleAuthExpired);
+    return () => {
+      window.removeEventListener('authExpired', handleAuthExpired);
+    };
+  }, [performLogout]);
+
+  useEffect(() => {
+    if (!sessionUser) {
+      return;
+    }
+
+    if (hasSessionTimedOut()) {
+      void performLogout(true);
+      return;
+    }
+
+    updateSessionActivity();
+    lastActivityWriteRef.current = Date.now();
+
+    const handleActivity = () => {
+      const now = Date.now();
+      if (now - lastActivityWriteRef.current < 1000) {
+        return;
+      }
+
+      lastActivityWriteRef.current = now;
+      updateSessionActivity(now);
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (hasSessionTimedOut()) {
+        void performLogout(true);
+      }
+    }, SESSION_CHECK_INTERVAL_MS);
+
+    for (const eventName of LOGOUT_ACTIVITY_EVENTS) {
+      window.addEventListener(eventName, handleActivity, { passive: true });
+    }
+
+    return () => {
+      window.clearInterval(intervalId);
+      for (const eventName of LOGOUT_ACTIVITY_EVENTS) {
+        window.removeEventListener(eventName, handleActivity);
+      }
+    };
+  }, [performLogout, sessionUser]);
 
   const accountMenuNode = showAccountMenu && sessionUser ? (
     <AccountMenu
