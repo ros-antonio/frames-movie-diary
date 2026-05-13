@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/repositories/prismaClient.js';
 import { config } from '../src/config.js';
+import { ADMIN_PERMISSIONS, USER_PERMISSIONS } from '../src/utils/permissions.js';
 
 export const app = createApp();
 
@@ -12,32 +13,17 @@ export const TEST_ROLE_ID = 'test-role-user';
 export const TEST_ADMIN_ID = 'test-admin-123';
 export const TEST_ADMIN_ROLE_ID = 'test-role-admin';
 export const TEST_OTHER_USER_ID = 'test-user-456';
-export const ADMIN_PERMISSIONS = [
-  'MOVIE_READ_OWN',
-  'MOVIE_WRITE_OWN',
-  'MOVIE_READ_ALL',
-  'MOVIE_WRITE_ALL',
-  'LIST_READ_OWN',
-  'LIST_WRITE_OWN',
-  'LIST_READ_ALL',
-  'LIST_WRITE_ALL',
-  'ADMIN_VIEW_USERS',
-  'ADMIN_DELETE_USERS',
-];
-export const USER_PERMISSIONS = [
-  'MOVIE_READ_OWN',
-  'MOVIE_WRITE_OWN',
-  'LIST_READ_OWN',
-  'LIST_WRITE_OWN',
-];
+export { ADMIN_PERMISSIONS, USER_PERMISSIONS };
 
-export function authHeader(userId = TEST_USER_ID, role = 'USER') {
-  const token = jwt.sign({ userId, role }, config.jwtSecret, { expiresIn: '1h' });
+export function authHeader(userId = TEST_USER_ID, role: 'USER' | 'ADMIN' = 'USER') {
+  const permissions = role === 'ADMIN' ? [...ADMIN_PERMISSIONS] : [...USER_PERMISSIONS];
+  const token = jwt.sign({ userId, role, permissions, sessionVersion: 1 }, config.jwtSecret, { expiresIn: '1h' });
   return { Authorization: `Bearer ${token}` };
 }
 
-export function authCookie(userId = TEST_USER_ID, role = 'USER') {
-  const token = jwt.sign({ userId, role }, config.jwtSecret, { expiresIn: '1h' });
+export function authCookie(userId = TEST_USER_ID, role: 'USER' | 'ADMIN' = 'USER') {
+  const permissions = role === 'ADMIN' ? [...ADMIN_PERMISSIONS] : [...USER_PERMISSIONS];
+  const token = jwt.sign({ userId, role, permissions, sessionVersion: 1 }, config.jwtSecret, { expiresIn: '1h' });
   return `frames_auth=${encodeURIComponent(token)}`;
 }
 
@@ -46,19 +32,18 @@ export async function resetStore(): Promise<void> {
     throw new Error(`STOP: Attempted to run tests against a non-test database! URL: ${process.env.DATABASE_URL}`);
   }
 
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE "AuditLog", "SuspiciousUser", "ListMovie", "Frame", "CustomList", "Movie", "User", "Role", "Permission" CASCADE');
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "_PermissionToRole", "PasswordResetToken", "RecoveryCode", "AuditLog", "SuspiciousUser", "ListMovie", "Frame", "CustomList", "Movie", "User", "Role", "Permission" RESTART IDENTITY CASCADE');
 
-  const adminPermissionRows = await Promise.all(
-    ADMIN_PERMISSIONS.map((name) => prisma.permission.create({ data: { name } })),
-  );
-  const userPermissionRows = adminPermissionRows.filter((permission) => USER_PERMISSIONS.includes(permission.name));
+  for (const name of ADMIN_PERMISSIONS) {
+    await prisma.permission.create({ data: { name } });
+  }
 
   await prisma.role.create({
     data: {
       id: TEST_ROLE_ID,
       name: 'USER',
       permissions: {
-        connect: userPermissionRows.map((permission) => ({ id: permission.id })),
+        connect: USER_PERMISSIONS.map((name) => ({ name })),
       },
     },
   });
@@ -68,7 +53,7 @@ export async function resetStore(): Promise<void> {
       id: TEST_ADMIN_ROLE_ID,
       name: 'ADMIN',
       permissions: {
-        connect: adminPermissionRows.map((permission) => ({ id: permission.id })),
+        connect: ADMIN_PERMISSIONS.map((name) => ({ name })),
       },
     },
   });
@@ -111,7 +96,7 @@ export async function createTestUser(input: {
   });
 }
 
-export async function createMovie(overrides?: Record<string, unknown>, userId = TEST_USER_ID, role = 'USER') {
+export async function createMovie(overrides?: Record<string, unknown>, userId = TEST_USER_ID, role: 'USER' | 'ADMIN' = 'USER') {
   const payload = {
     movieName: 'Inception',
     watchDate: '2025-01-10',
@@ -123,7 +108,7 @@ export async function createMovie(overrides?: Record<string, unknown>, userId = 
   return request(app).post('/api/movies').set(authHeader(userId, role)).send(payload);
 }
 
-export async function createList(overrides?: Record<string, unknown>, userId = TEST_USER_ID, role = 'USER') {
+export async function createList(overrides?: Record<string, unknown>, userId = TEST_USER_ID, role: 'USER' | 'ADMIN' = 'USER') {
   const payload = {
     name: 'Favorites',
     description: 'My favorite movies',

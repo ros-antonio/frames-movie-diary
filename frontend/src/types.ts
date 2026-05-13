@@ -35,6 +35,29 @@ export interface AuthUser {
     name: string;
     email: string;
     role: string;
+    permissions: string[];
+    mfaEnabled: boolean;
+}
+
+export interface AuthChallengeResponse {
+    challengeRequired: true;
+    challengeToken: string;
+    availableMethods: Array<'totp' | 'recovery_code'>;
+    user: AuthUser;
+}
+
+export interface AuthSuccessResponse {
+    user: AuthUser;
+    token: string;
+}
+
+export type LoginResult = AuthSuccessResponse | AuthChallengeResponse;
+
+export interface SecurityState {
+    mfaEnabled: boolean;
+    recoveryCodesRemaining: number;
+    role: string;
+    permissions: string[];
 }
 
 export interface AdminUser {

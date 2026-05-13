@@ -19,7 +19,7 @@ describe('auth hooks backend paths', () => {
       .fn()
       // UPDATED: Now returns { user, token } to match the new API
       .mockResolvedValueOnce({
-        user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'USER' },
+        user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'USER', permissions: ['MOVIE_READ_OWN'], mfaEnabled: false },
         token: 'fake-jwt-token'
       })
       .mockRejectedValueOnce(new Error('Login failed'));
@@ -54,7 +54,7 @@ describe('auth hooks backend paths', () => {
       .fn()
       // UPDATED: Now returns { user, token } to match the new API
       .mockResolvedValueOnce({
-        user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'USER' },
+        user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'USER', permissions: ['MOVIE_READ_OWN'], mfaEnabled: false },
         token: 'fake-jwt-token'
       })
       .mockRejectedValueOnce(new Error('Register failed'));
@@ -126,5 +126,130 @@ describe('auth hooks backend paths', () => {
     expect(result.current.errors.password).toBe('Password must be less than 128 characters');
     expect(register).not.toHaveBeenCalled();
     expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('switches to MFA verification when the backend requires a second step', async () => {
+    const login = vi.fn().mockResolvedValue({
+      challengeRequired: true,
+      challengeToken: 'challenge-token',
+      availableMethods: ['totp', 'recovery_code'],
+      user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'ADMIN', permissions: ['SECURITY_MANAGE_ALL'], mfaEnabled: true },
+    });
+    const verify = vi.fn().mockResolvedValue({
+      user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'ADMIN', permissions: ['SECURITY_MANAGE_ALL'], mfaEnabled: true },
+      token: 'final-token',
+    });
+
+    const { result } = renderHook(() => useLoginPage({ forceBackend: true, login, verify }));
+
+    await act(async () => {
+      result.current.setEmail('admin@example.com');
+      result.current.setPassword('password123');
+    });
+
+    await act(async () => {
+      await result.current.handleLogin({ preventDefault() {} } as React.FormEvent);
+    });
+
+    expect(result.current.isMfaStep).toBe(true);
+    expect(result.current.availableMethods).toEqual(['totp', 'recovery_code']);
+    expect(navigateSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.setMfaCode('123456');
+    });
+
+    await act(async () => {
+      await result.current.handleMfaVerify({ preventDefault() {} } as React.FormEvent);
+    });
+
+    expect(verify).toHaveBeenCalledWith({
+      challengeToken: 'challenge-token',
+      code: '123456',
+      method: 'totp',
+    });
+    expect(navigateSpy).toHaveBeenCalledWith('/diary');
+  });
+
+  it('surfaces MFA form errors for missing challenge, missing codes, and failed verification', async () => {
+    const login = vi.fn().mockResolvedValue({
+      challengeRequired: true,
+      challengeToken: 'challenge-token',
+      availableMethods: ['totp', 'recovery_code'],
+      user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'ADMIN', permissions: ['SECURITY_MANAGE_ALL'], mfaEnabled: true },
+    });
+    const verify = vi.fn().mockRejectedValue(new Error('Invalid authenticator code'));
+
+    const { result } = renderHook(() => useLoginPage({ forceBackend: true, login, verify }));
+
+    await act(async () => {
+      result.current.handleMfaVerify({ preventDefault() {} } as React.FormEvent);
+    });
+    expect(result.current.errors.form).toBe('MFA challenge is missing. Please sign in again.');
+
+    await act(async () => {
+      result.current.setEmail('admin@example.com');
+      result.current.setPassword('password123');
+    });
+    await act(async () => {
+      await result.current.handleLogin({ preventDefault() {} } as React.FormEvent);
+    });
+
+    await act(async () => {
+      await result.current.handleMfaVerify({ preventDefault() {} } as React.FormEvent);
+    });
+    expect(result.current.errors.code).toBe('Authenticator code is required');
+
+    await act(async () => {
+      result.current.setMfaMethod('recovery_code');
+    });
+    await act(async () => {
+      await result.current.handleMfaVerify({ preventDefault() {} } as React.FormEvent);
+    });
+    expect(result.current.errors.code).toBe('Recovery code is required');
+
+    await act(async () => {
+      result.current.setMfaCode('ABC123-DEF456');
+    });
+    await act(async () => {
+      await result.current.handleMfaVerify({ preventDefault() {} } as React.FormEvent);
+    });
+
+    await waitFor(() => {
+      expect(result.current.errors.form).toBe('Invalid authenticator code');
+    });
+  });
+
+  it('resets the MFA stage back to the normal login form', async () => {
+    const login = vi.fn().mockResolvedValue({
+      challengeRequired: true,
+      challengeToken: 'challenge-token',
+      availableMethods: ['totp'],
+      user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'ADMIN', permissions: ['SECURITY_MANAGE_ALL'], mfaEnabled: true },
+    });
+
+    const { result } = renderHook(() => useLoginPage({ forceBackend: true, login }));
+
+    await act(async () => {
+      result.current.setEmail('admin@example.com');
+      result.current.setPassword('password123');
+    });
+    await act(async () => {
+      await result.current.handleLogin({ preventDefault() {} } as React.FormEvent);
+    });
+
+    expect(result.current.isMfaStep).toBe(true);
+
+    act(() => {
+      result.current.setMfaCode('123456');
+    });
+
+    act(() => {
+      result.current.resetMfaStage();
+    });
+
+    expect(result.current.isMfaStep).toBe(false);
+    expect(result.current.availableMethods).toEqual([]);
+    expect(result.current.mfaCode).toBe('');
   });
 });

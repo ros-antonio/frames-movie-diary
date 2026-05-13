@@ -163,7 +163,7 @@ describe('lists API', () => {
     expect(response.status).toBe(404);
   });
 
-  it('returns 400 when creating a list with a non-existent user ID (P2003)', async () => {
+  it('returns 401 when creating a list with a token for a non-existent user', async () => {
     const response = await request(app)
       .post('/api/lists')
       .set(authHeader('ghost-user-id-123'))
@@ -172,7 +172,7 @@ describe('lists API', () => {
         description: 'Spooky',
       });
 
-    expect(response.status).toBe(400);
-    expect(response.body.message).toBe('Invalid user ID');
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe('Invalid or expired token');
   });
 });

@@ -21,6 +21,8 @@ describe('session utilities', () => {
       name: 'Tony Stark',
       email: 'tony@example.com',
       role: 'ADMIN',
+      permissions: ['ADMIN_VIEW_USERS'],
+      mfaEnabled: true,
     });
 
     expect(readSessionUser()).toEqual({

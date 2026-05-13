@@ -48,6 +48,8 @@ export const config = {
   sslKeyPath: process.env.SSL_KEY_PATH?.trim() || null,
   sslCertPath: process.env.SSL_CERT_PATH?.trim() || null,
   sslHosts: readOptionalListEnv('SSL_HOSTS'),
+  authIssuer: process.env.AUTH_ISSUER?.trim() || 'Frames Movie Diary',
+  exposeRecoveryTokens: process.env.EXPOSE_RECOVERY_TOKENS?.trim() === 'true' || process.env.NODE_ENV !== 'production',
 };
 
 if (config.nodeEnv === 'test' && !config.databaseUrl.includes('_test')) {

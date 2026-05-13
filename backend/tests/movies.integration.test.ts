@@ -244,7 +244,7 @@ describe('movies API', () => {
     expect(response.status).toBe(400);
   });
 
-  it('returns 400 when creating a movie with a non-existent user ID (P2003)', async () => {
+  it('returns 401 when creating a movie with a token for a non-existent user', async () => {
     const response = await request(app)
       .post('/api/movies')
       .set(authHeader('ghost-user-id-123'))
@@ -253,8 +253,8 @@ describe('movies API', () => {
         watchDate: '2025-01-01',
       });
 
-    expect(response.status).toBe(400);
-    expect(response.body.message).toBe('Invalid user ID');
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe('Invalid or expired token');
   });
 });
 

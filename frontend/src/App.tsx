@@ -9,9 +9,12 @@ import { LogNewMovie } from './components/LogNewMovie';
 import { MovieDetail } from './components/MovieDetail';
 import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
+import { ForgotPasswordPage } from './components/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
 import { Statistics } from './components/Statistics';
 import { CustomLists } from './components/CustomLists';
 import { AdminDashboard } from './components/AdminDashboard';
+import { SecurityPage } from './components/SecurityPage';
 import { useAppState } from './hooks/useAppState';
 import { useUserActivity } from './hooks/useUserActivity';
 import { movieDiaryApi } from './api/movieDiaryApi';
@@ -310,6 +313,14 @@ export default function App() {
     void performLogout(true);
   };
 
+  const handleSecuritySessionReset = () => {
+    clearSessionUser();
+    dispatchSessionChanged(null);
+    setSessionUser(null);
+    setIsSessionResolved(true);
+    navigate('/login', { replace: true });
+  };
+
   useEffect(() => {
     const handleSessionChanged = () => {
       setSessionUser(readSessionUser());
@@ -420,6 +431,7 @@ export default function App() {
       name={sessionUser.name}
       email={sessionUser.email}
       role={sessionUser.role}
+      onSecurity={() => navigate('/security')}
       onLogout={handleLogout}
     />
   ) : undefined;
@@ -468,6 +480,8 @@ export default function App() {
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/statistics"
           element={(
@@ -483,6 +497,14 @@ export default function App() {
               <AdminDashboard onBack={() => navigate('/diary')} accountMenu={accountMenuNode} />
             </AuthGate>
           }
+        />
+        <Route
+          path="/security"
+          element={(
+            <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser}>
+              <SecurityPage onLoggedOutSecurityChange={handleSecuritySessionReset} />
+            </AuthGate>
+          )}
         />
         <Route
           path="/custom-lists"

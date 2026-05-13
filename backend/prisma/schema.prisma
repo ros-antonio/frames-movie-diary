@@ -18,6 +18,10 @@ model User {
   email              String           @unique
   name               String
   passwordHash       String
+  sessionVersion     Int              @default(1)
+  mfaEnabled         Boolean          @default(false)
+  mfaSecret          String?
+  mfaPendingSecret   String?
   roleId             String
   role               Role             @relation(fields: [roleId], references: [id])
   movies             Movie[]
@@ -25,6 +29,8 @@ model User {
   auditLogs          AuditLog[]
   suspiciousFlags    SuspiciousUser[]
   reviewedSuspicious SuspiciousUser[] @relation("SuspiciousReviewedBy")
+  recoveryCodes      RecoveryCode[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Role {
@@ -114,4 +120,27 @@ model SuspiciousUser {
   @@index([userId])
   @@index([status])
   @@unique([userId, reason])
+}
+
+model RecoveryCode {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, expiresAt])
 }

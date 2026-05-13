@@ -1,9 +1,25 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
+import type { PermissionName } from './permissions.js';
 
 export const authCookieName = 'frames_auth';
 export const sessionIdleTimeoutMs = config.sessionIdleTimeoutMinutes * 60 * 1000;
+
+export interface AuthTokenPayload {
+  userId: string;
+  role: string;
+  permissions: PermissionName[];
+  sessionVersion: number;
+}
+
+export interface MfaChallengeTokenPayload {
+  type: 'mfa_challenge';
+  userId: string;
+  role: string;
+  permissions: PermissionName[];
+  sessionVersion: number;
+}
 
 function buildCookieOptions() {
   return {
@@ -24,9 +40,18 @@ function buildClearCookieOptions() {
   };
 }
 
-export function signAuthToken(payload: { userId: string; role: string }) {
+export function signAuthToken(payload: AuthTokenPayload) {
   return jwt.sign(payload, config.jwtSecret, {
     expiresIn: `${config.sessionIdleTimeoutMinutes}m`,
+  });
+}
+
+export function signMfaChallengeToken(payload: AuthTokenPayload) {
+  return jwt.sign({
+    ...payload,
+    type: 'mfa_challenge',
+  } satisfies MfaChallengeTokenPayload, config.jwtSecret, {
+    expiresIn: '5m',
   });
 }
 
@@ -44,4 +69,8 @@ export function getCookieToken(req: Request): string | null {
     .map((cookie) => cookie.trim())
     .find((cookie) => cookie.startsWith(`${authCookieName}=`))
     ?.split('=')[1] ?? null;
+}
+
+export function verifyToken<T>(token: string) {
+  return jwt.verify(token, config.jwtSecret) as T;
 }

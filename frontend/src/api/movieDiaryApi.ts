@@ -1,4 +1,16 @@
-import type { AdminUser, AuthUser, CustomList, MovieInput, MovieLog, SavedFrame, StatisticsOverview, SuspiciousObservation } from '../types';
+import type {
+  AdminUser,
+  AuthSuccessResponse,
+  AuthUser,
+  CustomList,
+  LoginResult,
+  MovieInput,
+  MovieLog,
+  SavedFrame,
+  SecurityState,
+  StatisticsOverview,
+  SuspiciousObservation,
+} from '../types';
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -12,10 +24,7 @@ interface PaginatedResponse<T> {
   };
 }
 
-export interface AuthResponse {
-  user: AuthUser;
-  token: string;
-}
+export type AuthResponse = AuthSuccessResponse;
 
 export class ApiHttpError extends Error {
   public readonly status: number;
@@ -65,8 +74,16 @@ export interface MovieDiaryApi {
   addMovieToList(listId: string, movieId: string): Promise<CustomList>;
   removeMovieFromList(listId: string, movieId: string): Promise<CustomList>;
   register(input: { name: string; email: string; password: string; confirmPassword: string }): Promise<AuthResponse>;
-  login(input: { email: string; password: string }): Promise<AuthResponse>;
+  login(input: { email: string; password: string }): Promise<LoginResult>;
+  verifyMfa(input: { challengeToken: string; code: string; method: 'totp' | 'recovery_code' }): Promise<AuthSuccessResponse>;
   getSessionUser(): Promise<AuthUser>;
+  getSecurityState(): Promise<SecurityState>;
+  beginMfaSetup(): Promise<{ secret: string; otpAuthUri: string }>;
+  enableMfa(input: { code: string }): Promise<{ recoveryCodes: string[] }>;
+  regenerateRecoveryCodes(input: { code: string }): Promise<{ recoveryCodes: string[] }>;
+  disableMfa(input: { password: string }): Promise<void>;
+  forgotPassword(input: { email: string }): Promise<{ message: string; resetToken?: string; expiresAt?: string }>;
+  resetPassword(input: { token: string; password: string; confirmPassword: string }): Promise<void>;
   logout(): Promise<void>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
   getUsers(): Promise<AdminUser[]>;
@@ -157,7 +174,14 @@ export function registerUser(input: { name: string; email: string; password: str
 }
 
 export function loginUser(input: { email: string; password: string }) {
-  return request<AuthResponse>('/auth/login', {
+  return request<LoginResult>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function verifyMfa(input: { challengeToken: string; code: string; method: 'totp' | 'recovery_code' }) {
+  return request<AuthSuccessResponse>('/auth/mfa/verify', {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -166,6 +190,51 @@ export function loginUser(input: { email: string; password: string }) {
 export async function getSessionUser() {
   const payload = await request<{ user: AuthUser }>('/auth/session');
   return payload.user;
+}
+
+export function getSecurityState() {
+  return request<SecurityState>('/auth/security');
+}
+
+export function beginMfaSetup() {
+  return request<{ secret: string; otpAuthUri: string }>('/auth/mfa/setup', {
+    method: 'POST',
+  });
+}
+
+export function enableMfa(input: { code: string }) {
+  return request<{ recoveryCodes: string[] }>('/auth/mfa/enable', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function regenerateRecoveryCodes(input: { code: string }) {
+  return request<{ recoveryCodes: string[] }>('/auth/mfa/recovery-codes/regenerate', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function disableMfa(input: { password: string }) {
+  return request<void>('/auth/mfa/disable', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function forgotPassword(input: { email: string }) {
+  return request<{ message: string; resetToken?: string; expiresAt?: string }>('/auth/password/forgot', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function resetPassword(input: { token: string; password: string; confirmPassword: string }) {
+  return request<void>('/auth/password/reset', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
 
 export function logoutUser() {
@@ -257,8 +326,40 @@ export const movieDiaryApi: MovieDiaryApi = {
     return loginUser(input);
   },
 
+  verifyMfa(input: { challengeToken: string; code: string; method: 'totp' | 'recovery_code' }) {
+    return verifyMfa(input);
+  },
+
   getSessionUser() {
     return getSessionUser();
+  },
+
+  getSecurityState() {
+    return getSecurityState();
+  },
+
+  beginMfaSetup() {
+    return beginMfaSetup();
+  },
+
+  enableMfa(input: { code: string }) {
+    return enableMfa(input);
+  },
+
+  regenerateRecoveryCodes(input: { code: string }) {
+    return regenerateRecoveryCodes(input);
+  },
+
+  disableMfa(input: { password: string }) {
+    return disableMfa(input);
+  },
+
+  forgotPassword(input: { email: string }) {
+    return forgotPassword(input);
+  },
+
+  resetPassword(input: { token: string; password: string; confirmPassword: string }) {
+    return resetPassword(input);
   },
 
   logout() {

@@ -1,0 +1,24 @@
+export const ADMIN_PERMISSIONS = [
+  'MOVIE_READ_OWN',
+  'MOVIE_WRITE_OWN',
+  'MOVIE_READ_ALL',
+  'MOVIE_WRITE_ALL',
+  'LIST_READ_OWN',
+  'LIST_WRITE_OWN',
+  'LIST_READ_ALL',
+  'LIST_WRITE_ALL',
+  'ADMIN_VIEW_USERS',
+  'ADMIN_DELETE_USERS',
+  'SECURITY_MANAGE_SELF',
+  'SECURITY_MANAGE_ALL',
+] as const;
+
+export const USER_PERMISSIONS = [
+  'MOVIE_READ_OWN',
+  'MOVIE_WRITE_OWN',
+  'LIST_READ_OWN',
+  'LIST_WRITE_OWN',
+  'SECURITY_MANAGE_SELF',
+] as const;
+
+export type PermissionName = (typeof ADMIN_PERMISSIONS)[number];

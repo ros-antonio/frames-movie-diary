@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { HttpError } from '../utils/httpError.js';
-import { config } from '../config.js';
 import { suspiciousActivityService } from '../services/suspiciousActivityService.js';
 import { getRequestIp } from '../utils/requestMetadata.js';
-import { getCookieToken, setAuthCookie, signAuthToken } from '../utils/authSession.js';
+import { getCookieToken, setAuthCookie, signAuthToken, type AuthTokenPayload, verifyToken } from '../utils/authSession.js';
+import { prisma } from '../repositories/prismaClient.js';
+import type { PermissionName } from '../utils/permissions.js';
 
 declare global {
   namespace Express {
@@ -12,6 +12,8 @@ declare global {
       user?: {
         userId: string;
         role: string;
+        permissions: PermissionName[];
+        sessionVersion: number;
       };
     }
   }
@@ -28,6 +30,9 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
     '/api/auth/login',
     '/api/auth/register',
     '/api/auth/logout',
+    '/api/auth/mfa/verify',
+    '/api/auth/password/forgot',
+    '/api/auth/password/reset',
   ]);
   const isPublicRoute = publicRoutes.has(req.path) || publicRoutes.has(req.originalUrl);
 
@@ -46,17 +51,45 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
     ? authHeader.split(' ')[1]
     : decodeURIComponent(cookieToken ?? '');
 
-  try {
-    const decoded = jwt.verify(token, config.jwtSecret) as { userId: string, role: string };
+  void (async () => {
+    try {
+      const decoded = verifyToken<AuthTokenPayload>(token);
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        include: {
+          role: {
+            include: {
+              permissions: true,
+            },
+          },
+        },
+      });
 
-    req.user = decoded;
-    if (cookieToken && !authHeader?.startsWith('Bearer ')) {
-      setAuthCookie(res, signAuthToken({ userId: decoded.userId, role: decoded.role }));
+      if (!user || user.sessionVersion !== decoded.sessionVersion) {
+        throw new HttpError(401, 'Invalid or expired token');
+      }
+
+      req.user = {
+        userId: user.id,
+        role: user.role.name,
+        permissions: user.role.permissions.map((permission) => permission.name as PermissionName).sort(),
+        sessionVersion: user.sessionVersion,
+      };
+
+      if (cookieToken && !authHeader?.startsWith('Bearer ')) {
+        setAuthCookie(res, signAuthToken({
+          userId: user.id,
+          role: user.role.name,
+          permissions: req.user.permissions,
+          sessionVersion: user.sessionVersion,
+        }));
+      }
+
+      next();
+    } catch {
+      next(new HttpError(401, 'Invalid or expired token'));
     }
-    next();
-  } catch (error) {
-    next(new HttpError(401, 'Invalid or expired token'));
-  }
+  })();
 }
 
 /**
@@ -74,6 +107,28 @@ export const authorize = (...allowedRoles: string[]) => {
           userId: req.user.userId,
           roleName: req.user.role,
           actionDetails: `Forbidden access attempt on ${req.method} ${req.originalUrl}`,
+          ipAddress: getRequestIp(req),
+        });
+      }
+      next(new HttpError(403, 'Forbidden: You do not have permission to perform this action'));
+      return;
+    }
+
+    next();
+  };
+};
+
+export const authorizePermissions = (...requiredPermissions: PermissionName[]) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
+    const grantedPermissions = req.user?.permissions ?? [];
+    const allowed = requiredPermissions.every((permission) => grantedPermissions.includes(permission));
+
+    if (!req.user || !allowed) {
+      if (req.user) {
+        await suspiciousActivityService.recordForbiddenAction({
+          userId: req.user.userId,
+          roleName: req.user.role,
+          actionDetails: `Forbidden permission access attempt on ${req.method} ${req.originalUrl}`,
           ipAddress: getRequestIp(req),
         });
       }
