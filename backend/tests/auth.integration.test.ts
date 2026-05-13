@@ -454,7 +454,6 @@ describe('auth API', () => {
     expect(response.status).toBe(401);
     expect(response.body.message).toBe('Invalid password');
   });
-
   it('supports password recovery and invalidates the old password', async () => {
     await request(app).post('/api/auth/register').send({
       name: 'Tony Stark',
