@@ -5,10 +5,11 @@ interface AccountMenuProps {
   email?: string;
   name?: string;
   role: string;
+  onSecurity?: () => void;
   onLogout: () => void;
 }
 
-export function AccountMenu({ email, name, role, onLogout }: AccountMenuProps) {
+export function AccountMenu({ email, name, role, onSecurity, onLogout }: AccountMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -61,6 +62,21 @@ export function AccountMenu({ email, name, role, onLogout }: AccountMenuProps) {
               {role}
             </span>
           </div>
+
+          {onSecurity ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setIsOpen(false);
+                onSecurity();
+              }}
+              className="mb-2 flex w-full items-center gap-2 rounded-md border border-[#E0BAAA]/30 px-3 py-2 text-left text-sm text-[#F0E8FA] transition-colors hover:bg-[#E0BAAA]/10"
+            >
+              <UserRound className="h-4 w-4" />
+              Security center
+            </button>
+          ) : null}
 
           <button
             type="button"

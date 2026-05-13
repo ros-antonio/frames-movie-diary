@@ -2,6 +2,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { app, resetStore } from './testUtils.js';
 import { prisma } from '../src/repositories/prismaClient.js';
+import { generateTotpCode } from '../src/utils/mfa.js';
 
 describe('auth API', () => {
   beforeEach(async () => {
@@ -162,6 +163,143 @@ describe('auth API', () => {
 
     expect(response.status).toBe(401);
     expect(response.body.message).toBe('Authentication required: Missing or invalid token');
+  });
+
+  it('supports MFA enrollment and step-up login with an authenticator code', async () => {
+    const registerResponse = await request(app).post('/api/auth/register').send({
+      name: 'Tony Stark',
+      email: 'tony@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+    });
+
+    const authCookie = registerResponse.headers['set-cookie'];
+    const setupResponse = await request(app)
+      .post('/api/auth/mfa/setup')
+      .set('Cookie', authCookie);
+
+    expect(setupResponse.status).toBe(200);
+    expect(setupResponse.body.secret).toBeTypeOf('string');
+
+    const enableResponse = await request(app)
+      .post('/api/auth/mfa/enable')
+      .set('Cookie', authCookie)
+      .send({
+        code: generateTotpCode(setupResponse.body.secret),
+      });
+
+    expect(enableResponse.status).toBe(200);
+    expect(enableResponse.body.recoveryCodes).toHaveLength(8);
+
+    const loginResponse = await request(app).post('/api/auth/login').send({
+      email: 'tony@example.com',
+      password: 'password123',
+    });
+
+    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.body.challengeRequired).toBe(true);
+    expect(loginResponse.body.challengeToken).toBeTypeOf('string');
+
+    const verifyResponse = await request(app)
+      .post('/api/auth/mfa/verify')
+      .send({
+        challengeToken: loginResponse.body.challengeToken,
+        code: generateTotpCode(setupResponse.body.secret),
+        method: 'totp',
+      });
+
+    expect(verifyResponse.status).toBe(200);
+    expect(verifyResponse.body.user.mfaEnabled).toBe(true);
+    expect(verifyResponse.headers['set-cookie']).toEqual(
+      expect.arrayContaining([expect.stringContaining('frames_auth=')]),
+    );
+  });
+
+  it('supports backup recovery codes as a third authentication path', async () => {
+    const registerResponse = await request(app).post('/api/auth/register').send({
+      name: 'Tony Stark',
+      email: 'tony@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+    });
+
+    const authCookie = registerResponse.headers['set-cookie'];
+    const setupResponse = await request(app)
+      .post('/api/auth/mfa/setup')
+      .set('Cookie', authCookie);
+
+    const enableResponse = await request(app)
+      .post('/api/auth/mfa/enable')
+      .set('Cookie', authCookie)
+      .send({
+        code: generateTotpCode(setupResponse.body.secret),
+      });
+
+    const recoveryCode = enableResponse.body.recoveryCodes[0] as string;
+    const loginResponse = await request(app).post('/api/auth/login').send({
+      email: 'tony@example.com',
+      password: 'password123',
+    });
+
+    const verifyResponse = await request(app)
+      .post('/api/auth/mfa/verify')
+      .send({
+        challengeToken: loginResponse.body.challengeToken,
+        code: recoveryCode,
+        method: 'recovery_code',
+      });
+
+    expect(verifyResponse.status).toBe(200);
+
+    const reusedCodeResponse = await request(app)
+      .post('/api/auth/mfa/verify')
+      .send({
+        challengeToken: loginResponse.body.challengeToken,
+        code: recoveryCode,
+        method: 'recovery_code',
+      });
+
+    expect(reusedCodeResponse.status).toBe(401);
+    expect(reusedCodeResponse.body.message).toBe('Invalid recovery code');
+  });
+
+  it('supports password recovery and invalidates the old password', async () => {
+    await request(app).post('/api/auth/register').send({
+      name: 'Tony Stark',
+      email: 'tony@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+    });
+
+    const forgotResponse = await request(app)
+      .post('/api/auth/password/forgot')
+      .send({ email: 'tony@example.com' });
+
+    expect(forgotResponse.status).toBe(202);
+    expect(forgotResponse.body.resetToken).toBeTypeOf('string');
+
+    const resetResponse = await request(app)
+      .post('/api/auth/password/reset')
+      .send({
+        token: forgotResponse.body.resetToken,
+        password: 'newpass123',
+        confirmPassword: 'newpass123',
+      });
+
+    expect(resetResponse.status).toBe(204);
+
+    const oldPasswordLogin = await request(app).post('/api/auth/login').send({
+      email: 'tony@example.com',
+      password: 'password123',
+    });
+    const newPasswordLogin = await request(app).post('/api/auth/login').send({
+      email: 'tony@example.com',
+      password: 'newpass123',
+    });
+
+    expect(oldPasswordLogin.status).toBe(401);
+    expect(newPasswordLogin.status).toBe(200);
+    expect(newPasswordLogin.body.user.email).toBe('tony@example.com');
   });
 });
 

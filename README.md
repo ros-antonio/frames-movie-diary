@@ -44,7 +44,14 @@ SESSION_IDLE_TIMEOUT_MINUTES="15"
 SSL_KEY_PATH=""
 SSL_CERT_PATH=""
 SSL_HOSTS=""
+AUTH_ISSUER="Frames Movie Diary"
+EXPOSE_RECOVERY_TOKENS="true"
 ```
+
+Notes:
+
+- `AUTH_ISSUER` is used for MFA authenticator app labels and OTP metadata.
+- `EXPOSE_RECOVERY_TOKENS` should stay `true` only for local/demo flows where you want password reset tokens returned in the API response instead of being delivered externally.
 
 ### Frontend
 

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authorize } from '../middleware/auth.js';
+import { authorizePermissions } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { userService } from '../services/userService.js';
 import { auditLogService } from '../services/auditLogService.js';
@@ -9,7 +9,7 @@ import { userIdParamSchema } from '../validators/commonSchemas.js';
 
 const userRoutes = Router();
 
-userRoutes.get('/', authorize('ADMIN'), async (_req, res, next) => {
+userRoutes.get('/', authorizePermissions('ADMIN_VIEW_USERS'), async (_req, res, next) => {
   try {
     res.status(200).json(await userService.listUsers());
   } catch (error) {
@@ -17,7 +17,7 @@ userRoutes.get('/', authorize('ADMIN'), async (_req, res, next) => {
   }
 });
 
-userRoutes.get('/suspicious', authorize('ADMIN'), async (_req, res, next) => {
+userRoutes.get('/suspicious', authorizePermissions('SECURITY_MANAGE_ALL'), async (_req, res, next) => {
   try {
     res.status(200).json(await userService.listSuspiciousUsers());
   } catch (error) {
@@ -25,7 +25,7 @@ userRoutes.get('/suspicious', authorize('ADMIN'), async (_req, res, next) => {
   }
 });
 
-userRoutes.post('/suspicious/:id/review', authorize('ADMIN'), validate(userIdParamSchema, 'params'), async (req, res, next) => {
+userRoutes.post('/suspicious/:id/review', authorizePermissions('SECURITY_MANAGE_ALL'), validate(userIdParamSchema, 'params'), async (req, res, next) => {
   try {
     const updated = await userService.updateSuspiciousUserStatus(req.params.id, 'REVIEWED', req.user!.userId);
     await auditLogService.log({
@@ -43,7 +43,7 @@ userRoutes.post('/suspicious/:id/review', authorize('ADMIN'), validate(userIdPar
   }
 });
 
-userRoutes.post('/suspicious/:id/clear', authorize('ADMIN'), validate(userIdParamSchema, 'params'), async (req, res, next) => {
+userRoutes.post('/suspicious/:id/clear', authorizePermissions('SECURITY_MANAGE_ALL'), validate(userIdParamSchema, 'params'), async (req, res, next) => {
   try {
     const updated = await userService.updateSuspiciousUserStatus(req.params.id, 'CLEARED', req.user!.userId);
     await auditLogService.log({
@@ -61,7 +61,7 @@ userRoutes.post('/suspicious/:id/clear', authorize('ADMIN'), validate(userIdPara
   }
 });
 
-userRoutes.delete('/:id', authorize('ADMIN'), validate(userIdParamSchema, 'params'), async (req, res, next) => {
+userRoutes.delete('/:id', authorizePermissions('ADMIN_DELETE_USERS'), validate(userIdParamSchema, 'params'), async (req, res, next) => {
   try {
     const result = await userService.deleteUser(req.params.id, req.user!.userId);
     await auditLogService.log({

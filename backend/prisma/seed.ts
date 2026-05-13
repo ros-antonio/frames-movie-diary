@@ -1,29 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { ADMIN_PERMISSIONS, USER_PERMISSIONS } from '../src/utils/permissions.js';
 
 const prisma = new PrismaClient();
-const adminPermissions = [
-  'MOVIE_READ_OWN',
-  'MOVIE_WRITE_OWN',
-  'MOVIE_READ_ALL',
-  'MOVIE_WRITE_ALL',
-  'LIST_READ_OWN',
-  'LIST_WRITE_OWN',
-  'LIST_READ_ALL',
-  'LIST_WRITE_ALL',
-  'ADMIN_VIEW_USERS',
-  'ADMIN_DELETE_USERS',
-];
-const userPermissions = [
-  'MOVIE_READ_OWN',
-  'MOVIE_WRITE_OWN',
-  'LIST_READ_OWN',
-  'LIST_WRITE_OWN',
-];
 
 async function main() {
   const permissions = await Promise.all(
-    adminPermissions.map((name) =>
+    ADMIN_PERMISSIONS.map((name) =>
       prisma.permission.upsert({
         where: { name },
         update: {},
@@ -47,7 +30,7 @@ async function main() {
     },
   });
 
-  const userPermissionRows = permissions.filter((permission) => userPermissions.includes(permission.name));
+  const userPermissionRows = permissions.filter((permission) => USER_PERMISSIONS.includes(permission.name as (typeof USER_PERMISSIONS)[number]));
 
   await prisma.role.upsert({
     where: { name: 'USER' },
