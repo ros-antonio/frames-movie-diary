@@ -133,5 +133,35 @@ describe('auth API', () => {
       expect.arrayContaining([expect.stringContaining('frames_auth=;')]),
     );
   });
+
+  it('returns the authenticated session user from the auth cookie', async () => {
+    const registerResponse = await request(app).post('/api/auth/register').send({
+      name: 'Tony Stark',
+      email: 'tony@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+    });
+
+    const sessionResponse = await request(app)
+      .get('/api/auth/session')
+      .set('Cookie', registerResponse.headers['set-cookie']);
+
+    expect(sessionResponse.status).toBe(200);
+    expect(sessionResponse.body).toEqual({
+      user: expect.objectContaining({
+        id: registerResponse.body.user.id,
+        name: 'Tony Stark',
+        email: 'tony@example.com',
+        role: 'USER',
+      }),
+    });
+  });
+
+  it('rejects unauthenticated session lookup', async () => {
+    const response = await request(app).get('/api/auth/session');
+
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe('Authentication required: Missing or invalid token');
+  });
 });
 

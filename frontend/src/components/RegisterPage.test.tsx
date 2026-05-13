@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -217,12 +217,12 @@ describe('RegisterPage', () => {
   });
 
   it('does not navigate when email exceeds 255 characters', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderRegisterPage();
 
     const longEmail = 'a'.repeat(250) + '@example.com';
-    await user.type(screen.getByLabelText('Name'), 'Tony');
-    await user.type(screen.getByLabelText('Email'), longEmail);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Tony' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: longEmail } });
     await user.type(screen.getByLabelText('Password'), 'password123');
     await user.type(screen.getByLabelText('Confirm Password'), 'password123');
     await user.click(screen.getByRole('button', { name: 'Create Account' }));
@@ -234,8 +234,8 @@ describe('RegisterPage', () => {
     const user = userEvent.setup();
     renderRegisterPage();
 
-    await user.type(screen.getByLabelText('Name'), '  Tony  ');
-    await user.type(screen.getByLabelText('Email'), '  tony@example.com  ');
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: '  Tony  ' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: '  tony@example.com  ' } });
     await user.type(screen.getByLabelText('Password'), 'password123');
     await user.type(screen.getByLabelText('Confirm Password'), 'password123');
     await user.click(screen.getByRole('button', { name: 'Create Account' }));

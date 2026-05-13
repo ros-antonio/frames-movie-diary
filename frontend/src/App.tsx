@@ -19,6 +19,7 @@ import {
   clearSessionUser,
   dispatchSessionChanged,
   hasSessionTimedOut,
+  persistSessionUser,
   readSessionUser,
   updateSessionActivity,
 } from './utils/session';
@@ -66,20 +67,30 @@ function AddMovieRoute({ onSave, accountMenu }: { onSave: (newMovie: MovieInput)
   );
 }
 
-function RequireAuth({ children }: { children: ReactNode }) {
-  if (!localStorage.getItem('userId')) {
+function AuthGate({
+  isSessionResolved,
+  sessionUser,
+  requiredRole,
+  children,
+}: {
+  isSessionResolved: boolean;
+  sessionUser: ReturnType<typeof readSessionUser>;
+  requiredRole?: string;
+  children: ReactNode;
+}) {
+  if (!isSessionResolved) {
+    return (
+      <div className="min-h-screen bg-[#261834] flex items-center justify-center text-[#B9A5D2]">
+        Restoring secure session...
+      </div>
+    );
+  }
+
+  if (!sessionUser) {
     return <Navigate to="/" replace />;
   }
 
-  return children;
-}
-
-function RequireAdmin({ children }: { children: ReactNode }) {
-  if (!localStorage.getItem('userId')) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (localStorage.getItem('userRole') !== 'ADMIN') {
+  if (requiredRole && sessionUser.role !== requiredRole) {
     return <Navigate to="/diary" replace />;
   }
 
@@ -260,9 +271,11 @@ export default function App() {
     handleDeleteFrameFromMovie,
   } = useAppState();
   const [isSyncing, setIsSyncing] = useState(false);
-  const sessionUser = readSessionUser();
+  const [sessionUser, setSessionUser] = useState(() => import.meta.env.MODE === 'test' ? readSessionUser() : null);
+  const [isSessionResolved, setIsSessionResolved] = useState(() => import.meta.env.MODE === 'test');
   const showAccountMenu = Boolean(sessionUser) && !['/', '/login', '/register'].includes(location.pathname);
   const lastActivityWriteRef = useRef(0);
+  const logoutInFlightRef = useRef(false);
 
   const handleSyncClick = async () => {
     setIsSyncing(true);
@@ -271,6 +284,12 @@ export default function App() {
   };
 
   const performLogout = useCallback(async (syncBackend: boolean) => {
+    if (logoutInFlightRef.current) {
+      return;
+    }
+
+    logoutInFlightRef.current = true;
+
     if (syncBackend) {
       try {
         await movieDiaryApi.logout();
@@ -281,12 +300,68 @@ export default function App() {
 
     clearSessionUser();
     dispatchSessionChanged(null);
+    setSessionUser(null);
+    setIsSessionResolved(true);
     navigate('/', { replace: true });
+    logoutInFlightRef.current = false;
   }, [navigate]);
 
   const handleLogout = () => {
     void performLogout(true);
   };
+
+  useEffect(() => {
+    const handleSessionChanged = () => {
+      setSessionUser(readSessionUser());
+      setIsSessionResolved(true);
+    };
+
+    window.addEventListener('userIdChanged', handleSessionChanged);
+    return () => {
+      window.removeEventListener('userIdChanged', handleSessionChanged);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (import.meta.env.MODE === 'test') {
+      setSessionUser(readSessionUser());
+      setIsSessionResolved(true);
+      return;
+    }
+
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      try {
+        const user = await movieDiaryApi.getSessionUser();
+        if (!isMounted) {
+          return;
+        }
+
+        persistSessionUser(user);
+        dispatchSessionChanged(user.id);
+        setSessionUser(readSessionUser());
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        clearSessionUser();
+        dispatchSessionChanged(null);
+        setSessionUser(null);
+      } finally {
+        if (isMounted) {
+          setIsSessionResolved(true);
+        }
+      }
+    };
+
+    void restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -393,19 +468,26 @@ export default function App() {
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/statistics" element={<RequireAuth><Statistics movieLogs={movieLogs} accountMenu={accountMenuNode} /></RequireAuth>} />
+        <Route
+          path="/statistics"
+          element={(
+            <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser}>
+              <Statistics movieLogs={movieLogs} accountMenu={accountMenuNode} />
+            </AuthGate>
+          )}
+        />
         <Route
           path="/admin"
           element={
-            <RequireAdmin>
+            <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser} requiredRole="ADMIN">
               <AdminDashboard onBack={() => navigate('/diary')} accountMenu={accountMenuNode} />
-            </RequireAdmin>
+            </AuthGate>
           }
         />
         <Route
           path="/custom-lists"
           element={
-            <RequireAuth>
+            <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser}>
               <CustomLists
                 movieLogs={movieLogs}
                 customLists={customLists}
@@ -415,13 +497,13 @@ export default function App() {
                 onRemoveMovieFromList={handleRemoveMovieFromList}
                 accountMenu={accountMenuNode}
               />
-            </RequireAuth>
+            </AuthGate>
           }
         />
         <Route
           path="/diary"
           element={
-            <RequireAuth>
+            <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser}>
               <DiaryRoute
                 movieLogs={movieLogs}
                 accountMenu={accountMenuNode}
@@ -431,14 +513,21 @@ export default function App() {
                   navigate(`/diary/${id}`);
                 }}
               />
-            </RequireAuth>
+            </AuthGate>
           }
         />
-        <Route path="/diary/new" element={<RequireAuth><AddMovieRoute onSave={handleAddMovie} accountMenu={accountMenuNode} /></RequireAuth>} />
+        <Route
+          path="/diary/new"
+          element={(
+            <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser}>
+              <AddMovieRoute onSave={handleAddMovie} accountMenu={accountMenuNode} />
+            </AuthGate>
+          )}
+        />
         <Route
           path="/diary/:movieId"
           element={
-            <RequireAuth>
+            <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser}>
               <MovieDetailRoute
                 movieLogs={movieLogs}
                 accountMenu={accountMenuNode}
@@ -446,12 +535,16 @@ export default function App() {
                 onAddFrame={handleAddFrameToMovie}
                 onDeleteFrame={handleDeleteFrameFromMovie}
               />
-            </RequireAuth>
+            </AuthGate>
           }
         />
         <Route
           path="/diary/:movieId/edit"
-          element={<RequireAuth><EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} accountMenu={accountMenuNode} /></RequireAuth>}
+          element={(
+            <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser}>
+              <EditMovieRoute movieLogs={movieLogs} onSave={handleUpdateMovie} accountMenu={accountMenuNode} />
+            </AuthGate>
+          )}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -173,6 +173,23 @@ describe('movieDiaryApi error handling', () => {
     window.removeEventListener('authExpired', authExpiredListener);
   });
 
+  it('retrieves the authenticated session user from the backend', async () => {
+    mockFetchResponse({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        user: { id: 'u1', name: 'Tony', email: 'tony@example.com', role: 'USER' },
+      }),
+    });
+
+    await expect(movieDiaryApi.getSessionUser()).resolves.toEqual({
+      id: 'u1',
+      name: 'Tony',
+      email: 'tony@example.com',
+      role: 'USER',
+    });
+  });
+
   it('calls all API wrapper methods with expected routes and methods', async () => {
     const fetchMock = vi
       .fn()

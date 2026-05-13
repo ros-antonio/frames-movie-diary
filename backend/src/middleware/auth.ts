@@ -23,7 +23,13 @@ declare global {
  * Skips public endpoints (/api/health and /api/auth/*).
  */
 export function authenticate(req: Request, res: Response, next: NextFunction) {
-  const isPublicRoute = req.originalUrl === '/api/health' || req.originalUrl.startsWith('/api/auth');
+  const publicRoutes = new Set([
+    '/api/health',
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/auth/logout',
+  ]);
+  const isPublicRoute = publicRoutes.has(req.path) || publicRoutes.has(req.originalUrl);
 
   if (isPublicRoute) {
     return next();

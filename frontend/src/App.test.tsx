@@ -126,6 +126,7 @@ describe('App', () => {
 
   it('redirects to diary when editing a movie that does not exist', async () => {
     localStorage.setItem('userId', 'test-user');
+    localStorage.setItem('userRole', 'USER');
     renderApp(['/diary/non-existent-id/edit']);
 
     expect(await screen.findByRole('heading', { name: 'Movie Diary' })).toBeInTheDocument();

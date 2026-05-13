@@ -48,6 +48,15 @@ authRoutes.post('/login', validate(loginSchema, 'body'), async (req, res, next) 
   }
 });
 
+authRoutes.get('/session', async (req, res, next) => {
+  try {
+    const user = await authService.getSessionUser(req.user!.userId);
+    res.status(200).json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
 authRoutes.post('/logout', (_req, res) => {
   clearAuthCookie(res);
   res.status(204).send();

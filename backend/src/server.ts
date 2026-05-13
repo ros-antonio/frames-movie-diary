@@ -3,6 +3,7 @@ import { prisma } from './repositories/prismaClient.js';
 import { config } from './config.js';
 import { createServer } from 'node:https';
 import { readFileSync } from 'node:fs';
+import { networkInterfaces } from 'node:os';
 import selfsigned from 'selfsigned';
 
 const port = Number(process.env.PORT ?? 4000);
@@ -24,6 +25,29 @@ async function loadHttpsCredentials() {
     throw new Error('Production HTTPS requires SSL_KEY_PATH and SSL_CERT_PATH.');
   }
 
+  const detectedHosts = new Set(['localhost', '127.0.0.1', ...config.sslHosts]);
+  const altNames: Array<{ type: 2; value: string } | { type: 7; ip: string }> = [];
+
+  for (const [name, addresses] of Object.entries(networkInterfaces())) {
+    if (name) {
+      detectedHosts.add(name);
+    }
+
+    for (const address of addresses ?? []) {
+      if (address.family === 'IPv4' && !address.internal) {
+        detectedHosts.add(address.address);
+      }
+    }
+  }
+
+  for (const host of detectedHosts) {
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+      altNames.push({ type: 7, ip: host });
+    } else {
+      altNames.push({ type: 2, value: host });
+    }
+  }
+
   const generatedCert = await selfsigned.generate(
     [{ name: 'commonName', value: 'localhost' }],
     {
@@ -33,10 +57,7 @@ async function loadHttpsCredentials() {
       extensions: [
         {
           name: 'subjectAltName',
-          altNames: [
-            { type: 2, value: 'localhost' },
-            { type: 7, ip: '127.0.0.1' },
-          ],
+          altNames,
         },
       ],
     },

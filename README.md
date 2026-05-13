@@ -43,6 +43,7 @@ JWT_SECRET="replace_with_a_long_random_secret"
 SESSION_IDLE_TIMEOUT_MINUTES="15"
 SSL_KEY_PATH=""
 SSL_CERT_PATH=""
+SSL_HOSTS=""
 ```
 
 ### Frontend
@@ -55,6 +56,7 @@ Typical frontend env values:
 
 ```env
 VITE_API_BASE_URL=/api
+VITE_BACKEND_URL=https://localhost:4000
 VITE_SESSION_IDLE_TIMEOUT_MINUTES=15
 ```
 
@@ -118,6 +120,7 @@ Notes:
 - default port: `4000`
 - the backend runs over HTTPS
 - if `SSL_KEY_PATH` and `SSL_CERT_PATH` are empty, a temporary self-signed certificate is generated
+- the generated development certificate includes `localhost`, `127.0.0.1`, detected LAN IPv4 addresses, and any extra hosts listed in `SSL_HOSTS`
 
 If port `4000` is already in use:
 
@@ -140,6 +143,7 @@ Notes:
 
 - default URL: `https://localhost:5173`
 - by default, the frontend proxies `/api` to `https://localhost:4000`
+- to use a backend running on a different machine, set `VITE_BACKEND_URL=https://<server-lan-ip>:4000`
 
 ## Tests
 

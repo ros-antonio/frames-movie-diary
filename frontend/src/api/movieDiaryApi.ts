@@ -66,6 +66,7 @@ export interface MovieDiaryApi {
   removeMovieFromList(listId: string, movieId: string): Promise<CustomList>;
   register(input: { name: string; email: string; password: string; confirmPassword: string }): Promise<AuthResponse>;
   login(input: { email: string; password: string }): Promise<AuthResponse>;
+  getSessionUser(): Promise<AuthUser>;
   logout(): Promise<void>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
   getUsers(): Promise<AdminUser[]>;
@@ -162,6 +163,11 @@ export function loginUser(input: { email: string; password: string }) {
   });
 }
 
+export async function getSessionUser() {
+  const payload = await request<{ user: AuthUser }>('/auth/session');
+  return payload.user;
+}
+
 export function logoutUser() {
   return request<void>('/auth/logout', {
     method: 'POST',
@@ -249,6 +255,10 @@ export const movieDiaryApi: MovieDiaryApi = {
 
   login(input: { email: string; password: string }) {
     return loginUser(input);
+  },
+
+  getSessionUser() {
+    return getSessionUser();
   },
 
   logout() {

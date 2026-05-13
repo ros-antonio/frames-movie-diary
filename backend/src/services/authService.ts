@@ -32,6 +32,22 @@ function normalizeEmail(email: string): string {
 }
 
 class AuthService {
+  private toAuthUser(user: {
+    id: string;
+    name: string;
+    email: string;
+    role: {
+      name: string;
+    };
+  }): AuthUser {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role.name,
+    };
+  }
+
   async register(input: RegisterInput): Promise<AuthResponse> {
     const email = normalizeEmail(input.email);
 
@@ -67,12 +83,7 @@ class AuthService {
     const token = signAuthToken({ userId: user.id, role: user.role.name });
 
     return {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role.name,
-      },
+      user: this.toAuthUser(user),
       token,
     };
   }
@@ -92,14 +103,22 @@ class AuthService {
     const token = signAuthToken({ userId: user.id, role: user.role.name });
 
     return {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role.name,
-      },
+      user: this.toAuthUser(user),
       token,
     };
+  }
+
+  async getSessionUser(userId: string): Promise<AuthUser> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+
+    if (!user) {
+      throw new HttpError(401, 'Invalid or expired token');
+    }
+
+    return this.toAuthUser(user);
   }
 
   normalizeEmail(email: string): string {

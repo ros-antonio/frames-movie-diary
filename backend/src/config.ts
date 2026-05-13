@@ -27,6 +27,19 @@ function readOptionalIntEnv(key: string, fallback: number): number {
   return parsed;
 }
 
+function readOptionalListEnv(key: string): string[] {
+  const rawValue = process.env[key];
+
+  if (!rawValue?.trim()) {
+    return [];
+  }
+
+  return rawValue
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 export const config = {
   databaseUrl: readRequiredEnv('DATABASE_URL'),
   jwtSecret: readRequiredEnv('JWT_SECRET'),
@@ -34,6 +47,7 @@ export const config = {
   sessionIdleTimeoutMinutes: readOptionalIntEnv('SESSION_IDLE_TIMEOUT_MINUTES', 15),
   sslKeyPath: process.env.SSL_KEY_PATH?.trim() || null,
   sslCertPath: process.env.SSL_CERT_PATH?.trim() || null,
+  sslHosts: readOptionalListEnv('SSL_HOSTS'),
 };
 
 if (config.nodeEnv === 'test' && !config.databaseUrl.includes('_test')) {
