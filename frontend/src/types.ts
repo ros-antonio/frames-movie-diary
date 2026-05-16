@@ -84,6 +84,20 @@ export interface SuspiciousObservation {
     reviewedAt?: string;
 }
 
+export interface ListOverlapStatistic {
+    userId: string;
+    userName: string;
+    userEmail: string;
+    listAId: string;
+    listAName: string;
+    listAMovieCount: number;
+    listBId: string;
+    listBName: string;
+    listBMovieCount: number;
+    sharedMovieCount: number;
+    similarityScore: number;
+}
+
 export interface UserPreference {
     viewMode: 'table' | 'card';
     sortBy: 'movieName' | 'watchDate' | 'none';

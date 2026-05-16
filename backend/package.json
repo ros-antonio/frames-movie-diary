@@ -13,12 +13,16 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:benchmark": "cross-env NODE_ENV=test tsx prisma/seedBenchmark.ts",
+    "db:benchmark:indexes:apply": "cross-env NODE_ENV=test tsx prisma/benchmarkIndexes.ts apply",
+    "db:benchmark:indexes:drop": "cross-env NODE_ENV=test tsx prisma/benchmarkIndexes.ts drop"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.4.0",
     "@prisma/client": "^4.14.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",

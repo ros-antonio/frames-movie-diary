@@ -1,7 +1,7 @@
 import { ArrowLeft, Shield } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import type { AdminUser, SuspiciousObservation } from '../types';
+import type { AdminUser, ListOverlapStatistic, SuspiciousObservation } from '../types';
 import { movieDiaryApi } from '../api/movieDiaryApi';
 
 interface AdminDashboardProps {
@@ -12,6 +12,7 @@ interface AdminDashboardProps {
 export function AdminDashboard({ onBack, accountMenu }: AdminDashboardProps) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [suspiciousUsers, setSuspiciousUsers] = useState<SuspiciousObservation[]>([]);
+  const [listOverlapStats, setListOverlapStats] = useState<ListOverlapStatistic[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
@@ -24,13 +25,15 @@ export function AdminDashboard({ onBack, accountMenu }: AdminDashboardProps) {
 
     async function loadUsers() {
       try {
-        const [data, suspiciousData] = await Promise.all([
+        const [data, suspiciousData, overlapData] = await Promise.all([
           movieDiaryApi.getUsers(),
           movieDiaryApi.getSuspiciousUsers(),
+          movieDiaryApi.getListOverlapStatistics(),
         ]);
         if (isMounted) {
           setUsers(data);
           setSuspiciousUsers(suspiciousData);
+          setListOverlapStats(overlapData);
           setError(null);
         }
       } catch (loadError: unknown) {
@@ -147,6 +150,51 @@ export function AdminDashboard({ onBack, accountMenu }: AdminDashboardProps) {
 
         {!isLoading && !error && (
           <div className="space-y-6">
+            <section className="overflow-hidden rounded-lg bg-[#223662]">
+              <div className="border-b border-[#B9A5D2]/20 px-4 py-3">
+                <h2 className="text-xl font-semibold text-[#E0BAAA]">Highest Same-User List Overlaps</h2>
+                <p className="text-sm opacity-80">
+                  Heavy many-to-many statistic based on movies reused across multiple lists owned by the same user.
+                </p>
+              </div>
+              <table className="w-full border-collapse text-left">
+                <thead>
+                <tr className="border-b border-[#B9A5D2]/20">
+                  <th className="p-4 text-[#E0BAAA]">User</th>
+                  <th className="p-4 text-[#E0BAAA]">List A</th>
+                  <th className="p-4 text-[#E0BAAA]">List B</th>
+                  <th className="p-4 text-[#E0BAAA]">Shared Movies</th>
+                  <th className="p-4 text-[#E0BAAA]">Similarity</th>
+                </tr>
+                </thead>
+                <tbody>
+                {listOverlapStats.map((entry) => (
+                  <tr key={`${entry.listAId}-${entry.listBId}`} className="border-b border-[#B9A5D2]/10">
+                    <td className="p-4">
+                      <div className="font-semibold">{entry.userName}</div>
+                      <div className="text-sm opacity-75">{entry.userEmail}</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="font-semibold">{entry.listAName}</div>
+                      <div className="text-sm opacity-75">{entry.listAMovieCount} movies</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="font-semibold">{entry.listBName}</div>
+                      <div className="text-sm opacity-75">{entry.listBMovieCount} movies</div>
+                    </td>
+                    <td className="p-4">{entry.sharedMovieCount}</td>
+                    <td className="p-4">{(entry.similarityScore * 100).toFixed(2)}%</td>
+                  </tr>
+                ))}
+                {listOverlapStats.length === 0 && (
+                  <tr>
+                    <td className="p-8 text-center opacity-70" colSpan={5}>No list overlap data available yet.</td>
+                  </tr>
+                )}
+                </tbody>
+              </table>
+            </section>
+
             <section className="overflow-hidden rounded-lg bg-[#223662]">
               <div className="border-b border-[#B9A5D2]/20 px-4 py-3">
                 <div className="flex items-center justify-between gap-4">

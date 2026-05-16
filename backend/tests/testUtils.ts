@@ -117,3 +117,10 @@ export async function createList(overrides?: Record<string, unknown>, userId = T
 
   return request(app).post('/api/lists').set(authHeader(userId, role)).send(payload);
 }
+
+export async function addMovieToList(listId: string, movieId: string, userId = TEST_USER_ID, role: 'USER' | 'ADMIN' = 'USER') {
+  return request(app)
+    .post(`/api/lists/${listId}/movies/${movieId}`)
+    .set(authHeader(userId, role))
+    .send();
+}

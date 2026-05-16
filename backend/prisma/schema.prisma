@@ -75,6 +75,8 @@ model CustomList {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
   entries     ListMovie[]
+
+  @@index([userId, id])
 }
 
 model ListMovie {
@@ -85,6 +87,7 @@ model ListMovie {
   movieId String
 
   @@unique([listId, movieId])
+  @@index([movieId, listId])
 }
 
 model AuditLog {

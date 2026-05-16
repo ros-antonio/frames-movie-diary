@@ -3,6 +3,7 @@ import type {
   AuthSuccessResponse,
   AuthUser,
   CustomList,
+  ListOverlapStatistic,
   LoginResult,
   MovieInput,
   MovieLog,
@@ -86,6 +87,7 @@ export interface MovieDiaryApi {
   resetPassword(input: { token: string; password: string; confirmPassword: string }): Promise<void>;
   logout(): Promise<void>;
   getStatisticsOverview(): Promise<StatisticsOverview>;
+  getListOverlapStatistics(): Promise<ListOverlapStatistic[]>;
   getUsers(): Promise<AdminUser[]>;
   getSuspiciousUsers(): Promise<SuspiciousObservation[]>;
   markSuspiciousUserReviewed(observationId: string): Promise<SuspiciousObservation>;
@@ -368,6 +370,10 @@ export const movieDiaryApi: MovieDiaryApi = {
 
   getStatisticsOverview() {
     return request<StatisticsOverview>('/statistics/overview');
+  },
+
+  getListOverlapStatistics() {
+    return request<ListOverlapStatistic[]>('/statistics/list-overlaps');
   },
 
   getUsers() {

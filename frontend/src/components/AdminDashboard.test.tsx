@@ -45,14 +45,32 @@ describe('AdminDashboard', () => {
         lastDetectedAt: '2026-05-04T18:05:00.000Z',
       },
     ]);
+    vi.spyOn(movieDiaryApi, 'getListOverlapStatistics').mockResolvedValue([
+      {
+        userId: 'user-1',
+        userName: 'Normal User',
+        userEmail: 'user@example.com',
+        listAId: 'list-1',
+        listAName: 'Favorites',
+        listAMovieCount: 5,
+        listBId: 'list-2',
+        listBName: 'Weekend Watch',
+        listBMovieCount: 4,
+        sharedMovieCount: 3,
+        similarityScore: 0.5,
+      },
+    ]);
 
     render(<AdminDashboard onBack={vi.fn()} />);
 
     expect(screen.getByText('Loading users...')).toBeInTheDocument();
     expect(await screen.findByText('Admin User')).toBeInTheDocument();
-    expect(screen.getAllByText('Normal User')).toHaveLength(2);
+    expect(screen.getAllByText('Normal User')).toHaveLength(3);
     expect(screen.getByText('ADMIN_VIEW_USERS, MOVIE_READ_ALL')).toBeInTheDocument();
     expect(screen.getByText('Suspicious Activity Observation List')).toBeInTheDocument();
+    expect(screen.getByText('Highest Same-User List Overlaps')).toBeInTheDocument();
+    expect(screen.getByText('Weekend Watch')).toBeInTheDocument();
+    expect(screen.getByText('50.00%')).toBeInTheDocument();
     expect(screen.getByText('REPEATED_FAILED_LOGINS')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mark reviewed' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
@@ -63,6 +81,7 @@ describe('AdminDashboard', () => {
     const onBack = vi.fn();
     vi.spyOn(movieDiaryApi, 'getUsers').mockRejectedValue(new Error('Forbidden'));
     vi.spyOn(movieDiaryApi, 'getSuspiciousUsers').mockResolvedValue([]);
+    vi.spyOn(movieDiaryApi, 'getListOverlapStatistics').mockResolvedValue([]);
 
     render(<AdminDashboard onBack={onBack} />);
 
@@ -75,6 +94,7 @@ describe('AdminDashboard', () => {
   it('renders an empty state when there are no users', async () => {
     vi.spyOn(movieDiaryApi, 'getUsers').mockResolvedValue([]);
     vi.spyOn(movieDiaryApi, 'getSuspiciousUsers').mockResolvedValue([]);
+    vi.spyOn(movieDiaryApi, 'getListOverlapStatistics').mockResolvedValue([]);
 
     render(<AdminDashboard onBack={vi.fn()} />);
 
@@ -100,6 +120,7 @@ describe('AdminDashboard', () => {
         lastDetectedAt: '2026-05-04T18:05:00.000Z',
       },
     ]);
+    vi.spyOn(movieDiaryApi, 'getListOverlapStatistics').mockResolvedValue([]);
     vi.spyOn(movieDiaryApi, 'markSuspiciousUserReviewed').mockResolvedValue({
       id: 'obs-1',
       userId: 'user-1',
@@ -176,6 +197,7 @@ describe('AdminDashboard', () => {
       },
     ]);
     vi.spyOn(movieDiaryApi, 'getSuspiciousUsers').mockResolvedValue([]);
+    vi.spyOn(movieDiaryApi, 'getListOverlapStatistics').mockResolvedValue([]);
 
     vi.spyOn(movieDiaryApi, 'deleteUser').mockResolvedValue();
     vi.spyOn(window, 'confirm').mockReturnValue(true);

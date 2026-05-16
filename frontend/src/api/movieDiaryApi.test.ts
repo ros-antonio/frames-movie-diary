@@ -326,6 +326,25 @@ describe('movieDiaryApi error handling', () => {
         ok: true,
         status: 200,
         json: async () => ([
+          {
+            userId: 'user-2',
+            userName: 'User',
+            userEmail: 'user@example.com',
+            listAId: 'list-1',
+            listAName: 'Favorites',
+            listAMovieCount: 5,
+            listBId: 'list-2',
+            listBName: 'Weekend',
+            listBMovieCount: 4,
+            sharedMovieCount: 3,
+            similarityScore: 0.5,
+          },
+        ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ([
           { id: 'obs-1', userId: 'user-2', userName: 'User', userEmail: 'user@example.com', role: 'USER', reason: 'REPEATED_FAILED_LOGINS', score: 3, status: 'OBSERVED', firstDetectedAt: '2026-05-01T00:00:00.000Z', lastDetectedAt: '2026-05-01T00:00:00.000Z' },
         ]),
       })
@@ -348,20 +367,22 @@ describe('movieDiaryApi error handling', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await movieDiaryApi.getUsers();
+    await movieDiaryApi.getListOverlapStatistics();
     await movieDiaryApi.getSuspiciousUsers();
     await movieDiaryApi.markSuspiciousUserReviewed('obs-1');
     await movieDiaryApi.clearSuspiciousUser('obs-1');
     await movieDiaryApi.deleteUser('user-2');
 
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
     expect(String(fetchMock.mock.calls[0][0])).toContain('/users');
-    expect(String(fetchMock.mock.calls[1][0])).toContain('/users/suspicious');
-    expect(String(fetchMock.mock.calls[2][0])).toContain('/users/suspicious/obs-1/review');
-    expect(fetchMock.mock.calls[2][1]?.method).toBe('POST');
-    expect(String(fetchMock.mock.calls[3][0])).toContain('/users/suspicious/obs-1/clear');
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/statistics/list-overlaps');
+    expect(String(fetchMock.mock.calls[2][0])).toContain('/users/suspicious');
+    expect(String(fetchMock.mock.calls[3][0])).toContain('/users/suspicious/obs-1/review');
     expect(fetchMock.mock.calls[3][1]?.method).toBe('POST');
-    expect(String(fetchMock.mock.calls[4][0])).toContain('/users/user-2');
-    expect(fetchMock.mock.calls[4][1]?.method).toBe('DELETE');
+    expect(String(fetchMock.mock.calls[4][0])).toContain('/users/suspicious/obs-1/clear');
+    expect(fetchMock.mock.calls[4][1]?.method).toBe('POST');
+    expect(String(fetchMock.mock.calls[5][0])).toContain('/users/user-2');
+    expect(fetchMock.mock.calls[5][1]?.method).toBe('DELETE');
   });
 });
 
