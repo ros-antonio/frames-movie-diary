@@ -56,12 +56,9 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
       const decoded = verifyToken<AuthTokenPayload>(token);
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
-        include: {
-          role: {
-            include: {
-              permissions: true,
-            },
-          },
+        select: {
+          id: true,
+          sessionVersion: true,
         },
       });
 
@@ -71,15 +68,15 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 
       req.user = {
         userId: user.id,
-        role: user.role.name,
-        permissions: user.role.permissions.map((permission) => permission.name as PermissionName).sort(),
+        role: decoded.role,
+        permissions: [...decoded.permissions].sort(),
         sessionVersion: user.sessionVersion,
       };
 
       if (cookieToken && !authHeader?.startsWith('Bearer ')) {
         setAuthCookie(res, signAuthToken({
           userId: user.id,
-          role: user.role.name,
+          role: decoded.role,
           permissions: req.user.permissions,
           sessionVersion: user.sessionVersion,
         }));

@@ -171,11 +171,12 @@ class MovieService {
   }
 
   async addFrame(movieId: string, frameInput: FrameInput, userId: string, role: string): Promise<SavedFrame> {
-    const movie = await prisma.movie.findUnique({
-      where: { id: movieId },
+    const movie = await prisma.movie.findFirst({
+      where: role === 'ADMIN' ? { id: movieId } : { id: movieId, userId },
+      select: { id: true },
     });
 
-    if (!movie || (role !== 'ADMIN' && movie.userId !== userId)) {
+    if (!movie) {
       throw new HttpError(404, 'Movie not found');
     }
 
@@ -199,11 +200,12 @@ class MovieService {
   }
 
   async deleteFrame(movieId: string, frameId: string, userId: string, role: string): Promise<void> {
-    const movie = await prisma.movie.findUnique({
-      where: { id: movieId },
+    const movie = await prisma.movie.findFirst({
+      where: role === 'ADMIN' ? { id: movieId } : { id: movieId, userId },
+      select: { id: true },
     });
 
-    if (!movie || (role !== 'ADMIN' && movie.userId !== userId)) {
+    if (!movie) {
       throw new HttpError(404, 'Movie not found');
     }
 

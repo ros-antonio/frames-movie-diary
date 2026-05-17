@@ -96,9 +96,22 @@ class AuthService {
     };
   }
 
-  private async findUserByEmail(email: string) {
+  private async findUserForLogin(email: string) {
     return prisma.user.findUnique({
       where: { email },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
+    });
+  }
+
+  private async findUserForSecurityState(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
       include: {
         role: {
           include: {
@@ -110,7 +123,7 @@ class AuthService {
     });
   }
 
-  private async findUserById(userId: string) {
+  private async findUserForMfaChallenge(userId: string) {
     return prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -120,6 +133,58 @@ class AuthService {
           },
         },
         recoveryCodes: true,
+      },
+    });
+  }
+
+  private async findUserForPasswordReset(email: string) {
+    return prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+  }
+
+  private async findUserForSession(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
+    });
+  }
+
+  private async findUserForEnrollment(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        mfaPendingSecret: true,
+      },
+    });
+  }
+
+  private async findUserForDisableMfa(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        passwordHash: true,
+      },
+    });
+  }
+
+  private async findUserForRecoveryCodeRegeneration(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        mfaEnabled: true,
+        mfaSecret: true,
       },
     });
   }
@@ -184,7 +249,7 @@ class AuthService {
 
   async login(input: LoginInput): Promise<AuthResponse> {
     const email = normalizeEmail(input.email);
-    const user = await this.findUserByEmail(email);
+    const user = await this.findUserForLogin(email);
 
     if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) {
       throw new HttpError(401, 'Invalid email or password');
@@ -221,7 +286,7 @@ class AuthService {
       throw new HttpError(401, 'Invalid or expired MFA challenge');
     }
 
-    const user = await this.findUserById(challenge.userId);
+    const user = await this.findUserForMfaChallenge(challenge.userId);
     if (!user || !user.mfaEnabled || user.sessionVersion !== challenge.sessionVersion) {
       throw new HttpError(401, 'Invalid or expired MFA challenge');
     }
@@ -250,7 +315,7 @@ class AuthService {
   }
 
   async getSessionUser(userId: string): Promise<AuthUser> {
-    const user = await this.findUserById(userId);
+    const user = await this.findUserForSession(userId);
     if (!user) {
       throw new HttpError(401, 'Invalid or expired token');
     }
@@ -259,7 +324,7 @@ class AuthService {
   }
 
   async beginMfaEnrollment(userId: string) {
-    const user = await this.findUserById(userId);
+    const user = await this.findUserForEnrollment(userId);
     if (!user) {
       throw new HttpError(404, 'User not found');
     }
@@ -277,7 +342,7 @@ class AuthService {
   }
 
   async completeMfaEnrollment(userId: string, code: string) {
-    const user = await this.findUserById(userId);
+    const user = await this.findUserForEnrollment(userId);
     if (!user?.mfaPendingSecret) {
       throw new HttpError(400, 'No MFA enrollment is pending');
     }
@@ -310,7 +375,7 @@ class AuthService {
   }
 
   async disableMfa(userId: string, password: string) {
-    const user = await this.findUserById(userId);
+    const user = await this.findUserForDisableMfa(userId);
     if (!user) {
       throw new HttpError(404, 'User not found');
     }
@@ -334,7 +399,7 @@ class AuthService {
   }
 
   async regenerateRecoveryCodes(userId: string, code: string) {
-    const user = await this.findUserById(userId);
+    const user = await this.findUserForRecoveryCodeRegeneration(userId);
     if (!user?.mfaEnabled || !user.mfaSecret) {
       throw new HttpError(400, 'MFA is not enabled');
     }
@@ -354,7 +419,7 @@ class AuthService {
 
   async requestPasswordReset(input: PasswordResetRequestInput) {
     const email = normalizeEmail(input.email);
-    const user = await this.findUserByEmail(email);
+    const user = await this.findUserForPasswordReset(email);
 
     if (!user) {
       return {
@@ -426,7 +491,7 @@ class AuthService {
   }
 
   async getSecurityState(userId: string) {
-    const user = await this.findUserById(userId);
+    const user = await this.findUserForSecurityState(userId);
     if (!user) {
       throw new HttpError(404, 'User not found');
     }

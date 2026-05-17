@@ -91,29 +91,30 @@ class UserService {
   }
 
   async updateSuspiciousUserStatus(observationId: string, status: 'REVIEWED' | 'CLEARED', reviewedById: string) {
-    const existing = await prisma.suspiciousUser.findUnique({
-      where: { id: observationId },
-    });
+    let updated;
 
-    if (!existing) {
-      throw new HttpError(404, 'Suspicious observation not found');
-    }
-
-    const updated = await prisma.suspiciousUser.update({
-      where: { id: observationId },
-      data: {
-        status,
-        reviewedById,
-        reviewedAt: new Date(),
-      },
-      include: {
-        user: {
-          include: {
-            role: true,
+    try {
+      updated = await prisma.suspiciousUser.update({
+        where: { id: observationId },
+        data: {
+          status,
+          reviewedById,
+          reviewedAt: new Date(),
+        },
+        include: {
+          user: {
+            include: {
+              role: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2025') {
+        throw new HttpError(404, 'Suspicious observation not found');
+      }
+      throw error;
+    }
 
     return {
       id: updated.id,
