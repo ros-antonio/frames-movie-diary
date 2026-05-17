@@ -22,6 +22,10 @@ class ListService {
     };
   }
 
+  private buildListAccessWhere(listId: string, userId: string, role: string) {
+    return role === 'ADMIN' ? { id: listId } : { id: listId, userId };
+  }
+
   async list(page: number, pageSize: number, userId: string, role: string) {
     const whereClause = role === 'ADMIN' ? {} : { userId };
     const totalItems = await prisma.customList.count({ where: whereClause });
@@ -84,11 +88,12 @@ class ListService {
   }
 
   async update(listId: string, input: ListInput, userId: string, role: string): Promise<CustomList> {
-    const list = await prisma.customList.findUnique({
-      where: { id: listId },
+    const list = await prisma.customList.findFirst({
+      where: this.buildListAccessWhere(listId, userId, role),
+      select: { id: true },
     });
 
-    if (!list || (role !== 'ADMIN' && list.userId !== userId)) {
+    if (!list) {
       throw new HttpError(404, 'List not found');
     }
 
@@ -112,32 +117,22 @@ class ListService {
   }
 
   async delete(listId: string, userId: string, role: string): Promise<void> {
-    const list = await prisma.customList.findUnique({
-      where: { id: listId },
+    const deleted = await prisma.customList.deleteMany({
+      where: this.buildListAccessWhere(listId, userId, role),
     });
 
-    if (!list || (role !== 'ADMIN' && list.userId !== userId)) {
+    if (deleted.count === 0) {
       throw new HttpError(404, 'List not found');
-    }
-
-    try {
-      await prisma.customList.delete({
-        where: { id: listId },
-      });
-    } catch (error: unknown) {
-      if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2025') {
-        throw new HttpError(404, 'List not found');
-      }
-      throw error;
     }
   }
 
   async addMovie(listId: string, movieId: string, userId: string, role: string): Promise<CustomList> {
-    const list = await prisma.customList.findUnique({
-      where: { id: listId },
+    const list = await prisma.customList.findFirst({
+      where: this.buildListAccessWhere(listId, userId, role),
+      select: { id: true },
     });
 
-    if (!list || (role !== 'ADMIN' && list.userId !== userId)) {
+    if (!list) {
       throw new HttpError(404, 'List not found');
     }
 
@@ -166,9 +161,18 @@ class ListService {
   }
 
   async removeMovie(listId: string, movieId: string, userId: string, role: string): Promise<CustomList> {
-    const list = await this.getById(listId, userId, role);
+    const list = await prisma.customList.findFirst({
+      where: this.buildListAccessWhere(listId, userId, role),
+      include: { entries: true },
+    });
 
-    if (!list.movieIds.includes(movieId)) {
+    if (!list) {
+      throw new HttpError(404, 'List not found');
+    }
+
+    const currentList = this.toCustomList(list);
+
+    if (!currentList.movieIds.includes(movieId)) {
       throw new HttpError(404, 'Movie not in list');
     }
 
@@ -179,7 +183,10 @@ class ListService {
       },
     });
 
-    return this.getById(listId, userId, role);
+    return {
+      ...currentList,
+      movieIds: currentList.movieIds.filter((existingMovieId) => existingMovieId !== movieId),
+    };
   }
 }
 
