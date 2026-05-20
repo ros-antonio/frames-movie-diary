@@ -14,6 +14,18 @@ import { auditLogService } from '../services/auditLogService.js';
 import { suspiciousActivityService } from '../services/suspiciousActivityService.js';
 import { getRequestIp } from '../utils/requestMetadata.js';
 import { clearAuthCookie, setAuthCookie } from '../utils/authSession.js';
+import {
+  loginAccountLimiter,
+  loginIpLimiter,
+  mfaActionAccountLimiter,
+  mfaActionIpLimiter,
+  mfaVerifyAccountLimiter,
+  mfaVerifyIpLimiter,
+  passwordForgotAccountLimiter,
+  passwordForgotIpLimiter,
+  passwordResetAccountLimiter,
+  passwordResetIpLimiter,
+} from '../middleware/abuseProtection.js';
 
 const authRoutes = Router();
 
@@ -36,7 +48,7 @@ authRoutes.post('/register', validate(registerSchema, 'body'), async (req, res, 
   }
 });
 
-authRoutes.post('/login', validate(loginSchema, 'body'), async (req, res, next) => {
+authRoutes.post('/login', loginIpLimiter, loginAccountLimiter, validate(loginSchema, 'body'), async (req, res, next) => {
   try {
     const data = await authService.login(req.body);
     if ('token' in data) {
@@ -69,7 +81,7 @@ authRoutes.post('/login', validate(loginSchema, 'body'), async (req, res, next) 
   }
 });
 
-authRoutes.post('/mfa/verify', validate(mfaVerifySchema, 'body'), async (req, res, next) => {
+authRoutes.post('/mfa/verify', mfaVerifyIpLimiter, mfaVerifyAccountLimiter, validate(mfaVerifySchema, 'body'), async (req, res, next) => {
   try {
     const data = await authService.verifyMfaChallenge(req.body);
     setAuthCookie(res, data.token);
@@ -105,7 +117,7 @@ authRoutes.get('/security', async (req, res, next) => {
   }
 });
 
-authRoutes.post('/mfa/setup', async (req, res, next) => {
+authRoutes.post('/mfa/setup', mfaActionIpLimiter, mfaActionAccountLimiter, async (req, res, next) => {
   try {
     const setup = await authService.beginMfaEnrollment(req.user!.userId);
     await auditLogService.log({
@@ -123,7 +135,7 @@ authRoutes.post('/mfa/setup', async (req, res, next) => {
   }
 });
 
-authRoutes.post('/mfa/enable', validate(mfaSetupVerifySchema, 'body'), async (req, res, next) => {
+authRoutes.post('/mfa/enable', mfaActionIpLimiter, mfaActionAccountLimiter, validate(mfaSetupVerifySchema, 'body'), async (req, res, next) => {
   try {
     const payload = await authService.completeMfaEnrollment(req.user!.userId, req.body.code);
     clearAuthCookie(res);
@@ -142,7 +154,7 @@ authRoutes.post('/mfa/enable', validate(mfaSetupVerifySchema, 'body'), async (re
   }
 });
 
-authRoutes.post('/mfa/recovery-codes/regenerate', validate(mfaSetupVerifySchema, 'body'), async (req, res, next) => {
+authRoutes.post('/mfa/recovery-codes/regenerate', mfaActionIpLimiter, mfaActionAccountLimiter, validate(mfaSetupVerifySchema, 'body'), async (req, res, next) => {
   try {
     const payload = await authService.regenerateRecoveryCodes(req.user!.userId, req.body.code);
     clearAuthCookie(res);
@@ -161,7 +173,7 @@ authRoutes.post('/mfa/recovery-codes/regenerate', validate(mfaSetupVerifySchema,
   }
 });
 
-authRoutes.post('/mfa/disable', validate(mfaDisableSchema, 'body'), async (req, res, next) => {
+authRoutes.post('/mfa/disable', mfaActionIpLimiter, mfaActionAccountLimiter, validate(mfaDisableSchema, 'body'), async (req, res, next) => {
   try {
     await authService.disableMfa(req.user!.userId, req.body.password);
     clearAuthCookie(res);
@@ -180,7 +192,7 @@ authRoutes.post('/mfa/disable', validate(mfaDisableSchema, 'body'), async (req, 
   }
 });
 
-authRoutes.post('/password/forgot', validate(passwordForgotSchema, 'body'), async (req, res, next) => {
+authRoutes.post('/password/forgot', passwordForgotIpLimiter, passwordForgotAccountLimiter, validate(passwordForgotSchema, 'body'), async (req, res, next) => {
   try {
     const payload = await authService.requestPasswordReset(req.body);
     await auditLogService.log({
@@ -197,7 +209,7 @@ authRoutes.post('/password/forgot', validate(passwordForgotSchema, 'body'), asyn
   }
 });
 
-authRoutes.post('/password/reset', validate(passwordResetSchema, 'body'), async (req, res, next) => {
+authRoutes.post('/password/reset', passwordResetIpLimiter, passwordResetAccountLimiter, validate(passwordResetSchema, 'body'), async (req, res, next) => {
   try {
     await authService.resetPassword(req.body);
     clearAuthCookie(res);
