@@ -12,6 +12,13 @@ class StatisticsService {
       "listBName" ASC
   `;
 
+  private canonicalListOrderingSql = Prisma.sql`
+    (
+      "listA"."name" < "listB"."name"
+      OR ("listA"."name" = "listB"."name" AND "listA".id < "listB".id)
+    )
+  `;
+
   async getOverview(userId: string, role: string) {
     const whereClause = role === 'ADMIN' ? {} : { userId };
 
@@ -128,12 +135,30 @@ class StatisticsService {
         "list_overlaps"."userId" AS "userId",
         "owner"."name" AS "userName",
         "owner"."email" AS "userEmail",
-        "listA".id AS "listAId",
-        "listA"."name" AS "listAName",
-        "list_size_a"."movieCount" AS "listAMovieCount",
-        "listB".id AS "listBId",
-        "listB"."name" AS "listBName",
-        "list_size_b"."movieCount" AS "listBMovieCount",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "listA".id
+          ELSE "listB".id
+        END AS "listAId",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "listA"."name"
+          ELSE "listB"."name"
+        END AS "listAName",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "list_size_a"."movieCount"
+          ELSE "list_size_b"."movieCount"
+        END AS "listAMovieCount",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "listB".id
+          ELSE "listA".id
+        END AS "listBId",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "listB"."name"
+          ELSE "listA"."name"
+        END AS "listBName",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "list_size_b"."movieCount"
+          ELSE "list_size_a"."movieCount"
+        END AS "listBMovieCount",
         "list_overlaps"."sharedMovieCount" AS "sharedMovieCount",
         ROUND(
           (
@@ -169,20 +194,46 @@ class StatisticsService {
         "listA"."userId" AS "userId",
         "owner"."name" AS "userName",
         "owner"."email" AS "userEmail",
-        "listA".id AS "listAId",
-        "listA"."name" AS "listAName",
-        (
-          SELECT COUNT(*)::int
-          FROM "ListMovie" AS "listACount"
-          WHERE "listACount"."listId" = "listA".id
-        ) AS "listAMovieCount",
-        "listB".id AS "listBId",
-        "listB"."name" AS "listBName",
-        (
-          SELECT COUNT(*)::int
-          FROM "ListMovie" AS "listBCount"
-          WHERE "listBCount"."listId" = "listB".id
-        ) AS "listBMovieCount",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "listA".id
+          ELSE "listB".id
+        END AS "listAId",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "listA"."name"
+          ELSE "listB"."name"
+        END AS "listAName",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN (
+            SELECT COUNT(*)::int
+            FROM "ListMovie" AS "listACount"
+            WHERE "listACount"."listId" = "listA".id
+          )
+          ELSE (
+            SELECT COUNT(*)::int
+            FROM "ListMovie" AS "listBCount"
+            WHERE "listBCount"."listId" = "listB".id
+          )
+        END AS "listAMovieCount",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "listB".id
+          ELSE "listA".id
+        END AS "listBId",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN "listB"."name"
+          ELSE "listA"."name"
+        END AS "listBName",
+        CASE
+          WHEN ${this.canonicalListOrderingSql} THEN (
+            SELECT COUNT(*)::int
+            FROM "ListMovie" AS "listBCount"
+            WHERE "listBCount"."listId" = "listB".id
+          )
+          ELSE (
+            SELECT COUNT(*)::int
+            FROM "ListMovie" AS "listACount"
+            WHERE "listACount"."listId" = "listA".id
+          )
+        END AS "listBMovieCount",
         COUNT(*)::int AS "sharedMovieCount",
         ROUND(
           (
