@@ -27,6 +27,8 @@ describe('config', () => {
 
     expect(config.sessionIdleTimeoutMinutes).toBe(15);
     expect(config.sslHosts).toEqual([]);
+    expect(config.corsAllowedOrigins).toEqual([]);
+    expect(config.trustProxy).toBe(false);
     expect(config.authIssuer).toBe('Frames Movie Diary');
     expect(config.exposeRecoveryTokens).toBe(true);
   });
@@ -35,6 +37,8 @@ describe('config', () => {
     const { config } = await importConfigWithEnv({
       SESSION_IDLE_TIMEOUT_MINUTES: '30',
       SSL_HOSTS: ' 192.168.0.10, localhost , api.local ',
+      CORS_ALLOWED_ORIGINS: ' https://frames.example, https://app.example ',
+      TRUST_PROXY: 'true',
       AUTH_ISSUER: 'Custom Issuer',
       EXPOSE_RECOVERY_TOKENS: 'false',
       NODE_ENV: 'production',
@@ -42,6 +46,8 @@ describe('config', () => {
 
     expect(config.sessionIdleTimeoutMinutes).toBe(30);
     expect(config.sslHosts).toEqual(['192.168.0.10', 'localhost', 'api.local']);
+    expect(config.corsAllowedOrigins).toEqual(['https://frames.example', 'https://app.example']);
+    expect(config.trustProxy).toBe(true);
     expect(config.authIssuer).toBe('Custom Issuer');
     expect(config.exposeRecoveryTokens).toBe(false);
   });
@@ -55,6 +61,12 @@ describe('config', () => {
   it('throws when optional numeric environment variables are invalid', async () => {
     await expect(importConfigWithEnv({ SESSION_IDLE_TIMEOUT_MINUTES: '0' })).rejects.toThrow(
       'Environment variable SESSION_IDLE_TIMEOUT_MINUTES must be a positive number',
+    );
+  });
+
+  it('throws when optional boolean environment variables are invalid', async () => {
+    await expect(importConfigWithEnv({ TRUST_PROXY: 'sometimes' })).rejects.toThrow(
+      'Environment variable TRUST_PROXY must be either "true" or "false"',
     );
   });
 

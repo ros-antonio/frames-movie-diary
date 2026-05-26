@@ -662,6 +662,24 @@ describe('useAppState', () => {
     expect(result.current.operationError).toBe('Refresh failed');
   });
 
+  it('does not surface a startup error when initial backend load fails with unauthorized', async () => {
+    setNavigatorOnline(true);
+
+    vi.spyOn(movieDiaryApi, 'getAllMovies').mockRejectedValue(new ApiHttpError(401, 'Unauthorized'));
+    vi.spyOn(movieDiaryApi, 'getAllLists').mockRejectedValue(new ApiHttpError(401, 'Unauthorized'));
+
+    const { result } = renderHook(() => useAppState({ forceBackend: true }));
+
+    await waitFor(() => {
+      expect(movieDiaryApi.getAllMovies).toHaveBeenCalled();
+    });
+
+    expect(result.current.operationError).toBeNull();
+    expect(result.current.isOffline).toBe(false);
+    expect(result.current.movieLogs).toEqual([]);
+    expect(result.current.customLists).toEqual([]);
+  });
+
   it('returns false and sets operation error for non-offline backend failures', async () => {
     setNavigatorOnline(true);
     seedCachedMovies([

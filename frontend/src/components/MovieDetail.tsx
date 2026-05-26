@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { ArrowLeft, Edit, Trash2, Star, Film, Link as LinkIcon, Upload } from 'lucide-react';
-import type { MovieLog, SavedFrame } from '../types';
+import { ArrowLeft, Edit, Trash2, Star, Film, Link as LinkIcon, ListPlus, Search, Upload } from 'lucide-react';
+import type { CustomList, MovieLog, SavedFrame } from '../types';
 import { useMovieDetail } from '../hooks/useMovieDetail';
 
 interface MovieDetailProps {
@@ -11,6 +11,8 @@ interface MovieDetailProps {
     onEdit: () => void;
     onAddFrame?: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => Promise<boolean> | boolean | void;
     onDeleteFrame?: (movieId: string, frameId: string) => Promise<boolean> | boolean | void;
+    customLists?: CustomList[];
+    onAddMovieToList?: (listId: string, movieId: string) => Promise<boolean> | boolean | void;
     accountMenu?: ReactNode;
 }
 
@@ -88,9 +90,21 @@ function StarRating({ rating = 0 }: { rating?: number }) {
     );
 }
 
-export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDeleteFrame, accountMenu }: MovieDetailProps) {
+export function MovieDetail({
+    movie,
+    onBack,
+    onDelete,
+    onEdit,
+    onAddFrame,
+    onDeleteFrame,
+    customLists = [],
+    onAddMovieToList,
+    accountMenu,
+}: MovieDetailProps) {
     const { handleDelete } = useMovieDetail(movie, onDelete);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isAddToListModalOpen, setIsAddToListModalOpen] = useState(false);
+    const [listSearchQuery, setListSearchQuery] = useState('');
     const [isSavingUpload, setIsSavingUpload] = useState(false);
     const [uploadForm, setUploadForm] = useState<UploadFormData>({
         imageFile: null,
@@ -99,11 +113,23 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
     });
     const [uploadErrors, setUploadErrors] = useState<UploadErrors>({});
     const [selectedFrame, setSelectedFrame] = useState<SavedFrame | null>(null);
+    const normalizedListSearchQuery = listSearchQuery.trim().toLowerCase();
+    const currentLists = customLists.filter((list) => list.movieIds.includes(movie.id));
+    const availableLists = customLists.filter((list) => !list.movieIds.includes(movie.id));
+    const filteredAvailableLists = availableLists.filter((list) => (
+        list.name.toLowerCase().includes(normalizedListSearchQuery)
+        || list.description.toLowerCase().includes(normalizedListSearchQuery)
+    ));
 
     const closeUploadModal = () => {
         setIsUploadModalOpen(false);
         setUploadForm({ imageFile: null, timestamp: '', caption: '' });
         setUploadErrors({});
+    };
+
+    const closeAddToListModal = () => {
+        setIsAddToListModalOpen(false);
+        setListSearchQuery('');
     };
 
     const handleUploadSubmit = async (e: FormEvent) => {
@@ -145,6 +171,17 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
         setSelectedFrame((current) => (current?.id === frameId ? null : current));
     };
 
+    const handleAddMovieToList = async (listId: string) => {
+        if (!onAddMovieToList) {
+            return;
+        }
+
+        const saved = await onAddMovieToList(listId, movie.id);
+        if (saved !== false) {
+            closeAddToListModal();
+        }
+    };
+
     return (
         <div className="min-h-screen p-8 bg-[#261834]">
             <div className="max-w-4xl mx-auto space-y-8">
@@ -159,7 +196,7 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
                     {accountMenu}
                 </div>
 
-                <div className="rounded-lg p-8 space-y-6 bg-[#223662]">
+                <div className="rounded-lg bg-[#223662] p-8 space-y-6">
                     <div className="flex flex-col md:flex-row items-start justify-between gap-4">
                         <div className="space-y-4 flex-1">
                             <h1 className="text-4xl font-bold" style={{ color: '#B9A5D2' }}>
@@ -167,10 +204,10 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
                             </h1>
                             <div className="flex flex-wrap items-center gap-6">
                                 <div>
-                                    <p className="text-sm opacity-70 mb-1" style={{ color: '#B9A5D2' }}>
+                                    <p className="mb-1 text-sm font-medium" style={{ color: '#D7C6E7' }}>
                                         Watch Date
                                     </p>
-                                    <p style={{ color: '#B9A5D2' }}>
+                                    <p style={{ color: '#F0E8FA' }}>
                                         {new Date(movie.watchDate).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'long',
@@ -179,20 +216,52 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm opacity-70 mb-1" style={{ color: '#B9A5D2' }}>
+                                    <p className="mb-1 text-sm font-medium" style={{ color: '#D7C6E7' }}>
                                         Rating
                                     </p>
                                     <StarRating rating={movie.rating} />
                                     {(movie.rating === undefined || movie.rating < 0.5) && (
-                                        <p className="text-xs mt-1 opacity-70" style={{ color: '#B9A5D2' }}>
+                                        <p className="mt-1 text-xs" style={{ color: '#D7C6E7' }}>
                                             Not rated
                                         </p>
                                     )}
                                 </div>
                             </div>
+                            <div>
+                                <p className="mb-2 text-sm font-medium" style={{ color: '#D7C6E7' }}>
+                                    In Custom Lists
+                                </p>
+                                {currentLists.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {currentLists.map((list) => (
+                                            <span
+                                                key={list.id}
+                                                className="rounded-full border border-[#DDB4C8]/45 bg-[#3A3561] px-3 py-1 text-sm font-medium shadow-[0_4px_10px_rgba(12,16,34,0.16)]"
+                                                style={{ color: '#FBE7EF' }}
+                                            >
+                                                {list.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm" style={{ color: '#E2D4EF' }}>
+                                        Not added to any custom list yet.
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                         <div className="flex gap-2">
+                            {onAddMovieToList && (
+                                <button
+                                    onClick={() => setIsAddToListModalOpen(true)}
+                                    className="p-2 rounded-md hover:bg-[#E0BAAA]/10 transition-colors"
+                                    style={{ color: '#E0BAAA' }}
+                                    title="Add to Custom List"
+                                >
+                                    <ListPlus className="w-5 h-5" />
+                                </button>
+                            )}
                             <button
                                 onClick={onEdit}
                                 className="p-2 rounded-md hover:bg-[#E0BAAA]/10 transition-colors"
@@ -216,7 +285,7 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
                             <h3 className="text-xl" style={{ color: '#E0BAAA' }}>
                                 Review
                             </h3>
-                            <p className="leading-relaxed text-lg opacity-90" style={{ color: '#B9A5D2' }}>
+                            <p className="leading-relaxed text-lg opacity-95" style={{ color: '#E7D9F1' }}>
                                 {movie.review}
                             </p>
                         </div>
@@ -263,7 +332,7 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
                         </div>
 
                         {movie.frames.length === 0 ? (
-                            <div className="relative rounded-lg p-6 bg-[#1a1f3a] border border-[#B9A5D2]/10 text-center text-[#B9A5D2] italic py-12">
+                            <div className="relative rounded-lg border border-[#B9A5D2]/12 bg-[#1a1f3a] p-6 py-12 text-center italic text-[#E2D4EF]">
                                 No frames captured yet. Click "Capture New Frame" or "Upload PNG Frame" to add screenshots.
                             </div>
                         ) : (
@@ -375,6 +444,73 @@ export function MovieDetail({ movie, onBack, onDelete, onEdit, onAddFrame, onDel
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {isAddToListModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                    <div className="w-full max-w-lg rounded-lg border border-[#B9A5D2]/20 bg-[#223662] p-5">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <h2 className="text-xl" style={{ color: '#E0BAAA' }}>
+                                    Add to Custom List
+                                </h2>
+                                <p className="text-sm text-[#B9A5D2]">
+                                    Choose one of your lists for {movie.movieName}.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeAddToListModal}
+                                className="rounded-md border border-[#B9A5D2]/30 px-3 py-1.5 text-sm text-[#B9A5D2] hover:bg-[#B9A5D2]/10"
+                            >
+                                Close
+                            </button>
+                        </div>
+
+                        <label className="mb-4 flex items-center gap-3 rounded-md border border-[#B9A5D2]/20 bg-[#1a1f3a] px-3 py-2">
+                            <Search className="h-4 w-4 text-[#E0BAAA]" />
+                            <input
+                                type="search"
+                                value={listSearchQuery}
+                                onChange={(event) => setListSearchQuery(event.target.value)}
+                                placeholder="Search lists"
+                                className="w-full bg-transparent text-[#F0E8FA] outline-none placeholder:text-[#B9A5D2]/55"
+                                aria-label="Search custom lists"
+                            />
+                        </label>
+
+                        {filteredAvailableLists.length > 0 ? (
+                            <div className="max-h-80 space-y-3 overflow-auto pr-1">
+                                {filteredAvailableLists.map((list) => (
+                                    <div
+                                        key={list.id}
+                                        className="flex items-center justify-between gap-4 rounded-md bg-[#1a1f3a] p-4"
+                                    >
+                                        <div>
+                                            <p className="font-medium text-[#F0E8FA]">{list.name}</p>
+                                            <p className="mt-1 text-sm text-[#B9A5D2]/75">
+                                                {list.description || 'No description yet.'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleAddMovieToList(list.id)}
+                                            className="rounded-md bg-[#E0BAAA] px-3 py-2 text-sm font-semibold text-[#261834] hover:opacity-90"
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-md border border-dashed border-[#B9A5D2]/20 bg-[#1a1f3a] p-6 text-sm text-[#B9A5D2]/75">
+                                {availableLists.length === 0
+                                    ? 'This movie is already in all of your custom lists.'
+                                    : 'No custom lists match that search.'}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

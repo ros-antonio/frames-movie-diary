@@ -220,6 +220,7 @@ describe('App', () => {
       handleUpdateMovie: vi.fn(),
       handleDeleteMovie: vi.fn(),
       handleCreateList: vi.fn(),
+      handleUpdateList: vi.fn(),
       handleDeleteList: vi.fn(),
       handleAddMovieToList: vi.fn(),
       handleRemoveMovieFromList: vi.fn(),

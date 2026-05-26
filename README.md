@@ -44,6 +44,8 @@ SESSION_IDLE_TIMEOUT_MINUTES="15"
 SSL_KEY_PATH=""
 SSL_CERT_PATH=""
 SSL_HOSTS=""
+CORS_ALLOWED_ORIGINS=""
+TRUST_PROXY="false"
 AUTH_ISSUER="Frames Movie Diary"
 EXPOSE_RECOVERY_TOKENS="true"
 ```
@@ -52,6 +54,8 @@ Notes:
 
 - `AUTH_ISSUER` is used for MFA authenticator app labels and OTP metadata.
 - `EXPOSE_RECOVERY_TOKENS` should stay `true` only for local/demo flows where you want password reset tokens returned in the API response instead of being delivered externally.
+- `CORS_ALLOWED_ORIGINS` can be a comma-separated allowlist for deployed frontend origins.
+- `TRUST_PROXY` should be set to `true` when the backend runs behind a cloud proxy or load balancer.
 
 ### Frontend
 
@@ -125,9 +129,10 @@ npm run dev
 Notes:
 
 - default port: `4000`
-- the backend runs over HTTPS
+- the backend runs over HTTPS in development
 - if `SSL_KEY_PATH` and `SSL_CERT_PATH` are empty, a temporary self-signed certificate is generated
 - the generated development certificate includes `localhost`, `127.0.0.1`, detected LAN IPv4 addresses, and any extra hosts listed in `SSL_HOSTS`
+- in production, if `SSL_KEY_PATH` and `SSL_CERT_PATH` are not set, the backend serves HTTP and should sit behind a TLS terminator such as Nginx, Caddy, or a cloud platform proxy that provides Let's Encrypt certificates
 
 If port `4000` is already in use:
 

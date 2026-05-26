@@ -16,6 +16,7 @@ type PendingOperationPayload =
   | { type: 'updateMovie'; movieId: string; movie: MovieInput }
   | { type: 'deleteMovie'; movieId: string }
   | { type: 'createList'; tempId: string; name: string; description: string }
+  | { type: 'updateList'; listId: string; name: string; description: string }
   | { type: 'deleteList'; listId: string }
   | { type: 'addMovieToList'; listId: string; movieId: string }
   | { type: 'removeMovieFromList'; listId: string; movieId: string }
@@ -89,6 +90,10 @@ function shouldIgnoreSyncError(operation: PendingOperation, error: unknown): boo
   }
 
   return operation.type.startsWith('delete') || operation.type === 'removeMovieFromList';
+}
+
+function isAuthFailure(error: unknown): error is ApiHttpError {
+  return error instanceof ApiHttpError && (error.status === 401 || error.status === 403);
 }
 
 function reconcileMoviesWithPendingOperations(movieLogs: MovieLog[], operations: PendingOperation[]): MovieLog[] {
@@ -199,6 +204,14 @@ export function useAppState(options?: UseAppStateOptions) {
     setCustomLists((prev) => prev.filter((list) => list.id !== listId));
   }, []);
 
+  const applyLocalUpdateList = useCallback((listId: string, name: string, description: string) => {
+    setCustomLists((prev) => prev.map((list) => (
+      list.id === listId
+        ? { ...list, name, description }
+        : list
+    )));
+  }, []);
+
   const applyLocalAddMovieToList = useCallback((listId: string, movieId: string) => {
     setCustomLists((prev) =>
       prev.map((list) => list.id === listId && !list.movieIds.includes(movieId) ? {...list, movieIds: [...list.movieIds, movieId]} : list)
@@ -266,6 +279,10 @@ export function useAppState(options?: UseAppStateOptions) {
               case 'createList': {
                 const createdList = await movieDiaryApi.createList(operation.name, operation.description);
                 listIdMap.set(operation.tempId, createdList.id);
+                break;
+              }
+              case 'updateList': {
+                await movieDiaryApi.updateList(mapListId(operation.listId), operation.name, operation.description);
                 break;
               }
               case 'deleteList': {
@@ -404,6 +421,12 @@ export function useAppState(options?: UseAppStateOptions) {
           void replayPendingOperations(queuedOperationsAtMount);
         }
       } catch (error: unknown) {
+        if (isAuthFailure(error)) {
+          setIsOffline(false);
+          setOperationError(null);
+          return;
+        }
+
         if (isOfflineLikeError(error)) {
           setIsOffline(true);
           return;
@@ -446,6 +469,10 @@ export function useAppState(options?: UseAppStateOptions) {
       setMovieLogs(reconcileMoviesWithPendingOperations(movies, queuedOperations));
       setCustomLists(lists);
     } catch (error: unknown) {
+      if (isAuthFailure(error)) {
+        return;
+      }
+
       console.error('Failed to refresh custom lists:', error);
     }
   }, [useBackend]);
@@ -594,6 +621,34 @@ export function useAppState(options?: UseAppStateOptions) {
     return true;
   };
 
+  const handleUpdateList = async (listId: string, name: string, description: string): Promise<boolean> => {
+    if (useBackend && !shouldQueueOperation()) {
+      clearOperationError();
+      try {
+        const updatedList = await movieDiaryApi.updateList(listId, name, description);
+        setCustomLists((prev) => prev.map((list) => (list.id === listId ? updatedList : list)));
+        setIsOffline(false);
+        return true;
+      } catch (error: unknown) {
+        if (shouldQueueOperation(error)) {
+          applyLocalUpdateList(listId, name, description);
+          enqueueOperation({ type: 'updateList', listId, name, description });
+          setIsOffline(true);
+          return true;
+        }
+        setErrorFromUnknown(error, 'Could not update list.');
+        return false;
+      }
+    }
+
+    applyLocalUpdateList(listId, name, description);
+    if (useBackend) {
+      enqueueOperation({ type: 'updateList', listId, name, description });
+      setIsOffline(true);
+    }
+    return true;
+  };
+
   // RESTORED: These now trust your perfectly working backend
   const handleAddMovieToList = async (listId: string, movieId: string): Promise<boolean> => {
     if (useBackend && !shouldQueueOperation()) {
@@ -720,6 +775,7 @@ export function useAppState(options?: UseAppStateOptions) {
     handleUpdateMovie,
     handleDeleteMovie,
     handleCreateList,
+    handleUpdateList,
     handleDeleteList,
     handleAddMovieToList,
     handleRemoveMovieFromList,

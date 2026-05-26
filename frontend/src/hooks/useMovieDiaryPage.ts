@@ -42,8 +42,9 @@ export function useMovieDiaryPage(movieLogs: MovieLog[], options?: UseMovieDiary
 
   const localDiary = useMovieDiary(movieLogs);
   const serverDiary = useMovieDiary(serverMovies, Number.MAX_SAFE_INTEGER);
+  const isSearchActive = (localDiary.searchQuery ?? '').trim().length > 0;
 
-  const activeDiary = serverMode ? serverDiary : localDiary;
+  const activeDiary = serverMode && !isSearchActive ? serverDiary : localDiary;
 
   const prefetchNextPage = useCallback(async (page: number) => {
     if (!useServerPaging || page < 1) {
@@ -148,11 +149,12 @@ export function useMovieDiaryPage(movieLogs: MovieLog[], options?: UseMovieDiary
 
   return {
     ...activeDiary,
-    hasMore: serverMode ? serverHasMore : activeDiary.hasMore,
+    hasMore: serverMode && !isSearchActive ? serverHasMore : activeDiary.hasMore,
     loadMore,
-    totalMovies: serverMode ? serverMovies.length : activeDiary.totalMovies,
+    totalMovies: serverMode && !isSearchActive ? serverMovies.length : activeDiary.totalMovies,
     handleViewModeChange,
     handleSortChange,
+    handleSearchChange: activeDiary.setSearchQuery,
     getSortDirection,
     goToStatistics: () => navigate('/statistics'),
     goToCustomLists: () => navigate('/custom-lists'),

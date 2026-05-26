@@ -205,6 +205,28 @@ describe('MovieDiary', () => {
     expect(screen.getByText(/No movies logged yet/i)).toBeInTheDocument();
   });
 
+  it('filters movies using the search input', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <MovieDiary
+          movieLogs={[
+            movie('1', 'Arrival', '2026-01-01'),
+            movie('2', 'Blade Runner', '2026-01-02'),
+          ]}
+          onAddClick={vi.fn()}
+          onSelectMovie={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search movies' }), 'blade');
+
+    expect(screen.getByText('Blade Runner')).toBeInTheDocument();
+    expect(screen.queryByText('Arrival')).not.toBeInTheDocument();
+  });
+
   it('shows and uses the jump-to-top button after scrolling', async () => {
     const user = userEvent.setup();
 

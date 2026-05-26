@@ -50,6 +50,8 @@ function buildPage(page: number, data: MovieLog[], hasNextPage: boolean): Movies
 
 function buildDiaryState(movies: MovieLog[], overrides: Record<string, unknown> = {}) {
   return {
+    searchQuery: '',
+    setSearchQuery: vi.fn(),
     viewMode: 'table',
     setViewMode: vi.fn(),
     currentMovies: movies,
@@ -154,6 +156,24 @@ describe('useMovieDiaryPage', () => {
 
     expect(setViewMode).toHaveBeenCalledWith('card');
     expect(mockTrackPreference).toHaveBeenCalledWith({ viewMode: 'card' });
+  });
+
+  it('updates search query through the active diary state', () => {
+    const movieLogs = [buildMovie('1', 'Arrival', '2026-01-01')];
+    const setSearchQuery = vi.fn();
+
+    mockUseMovieDiary.mockReturnValue({
+      ...buildDiaryState(movieLogs),
+      setSearchQuery,
+    });
+
+    const { result } = renderHook(() => useMovieDiaryPage(movieLogs));
+
+    act(() => {
+      result.current.handleSearchChange('arr');
+    });
+
+    expect(setSearchQuery).toHaveBeenCalledWith('arr');
   });
 
   it('tracks sort preference changes with computed next order', () => {

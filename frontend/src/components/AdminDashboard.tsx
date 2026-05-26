@@ -7,9 +7,10 @@ import { movieDiaryApi } from '../api/movieDiaryApi';
 interface AdminDashboardProps {
   onBack: () => void;
   accountMenu?: ReactNode;
+  onUserDeleted?: () => Promise<void> | void;
 }
 
-export function AdminDashboard({ onBack, accountMenu }: AdminDashboardProps) {
+export function AdminDashboard({ onBack, accountMenu, onUserDeleted }: AdminDashboardProps) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [suspiciousUsers, setSuspiciousUsers] = useState<SuspiciousObservation[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export function AdminDashboard({ onBack, accountMenu }: AdminDashboardProps) {
     try {
       await movieDiaryApi.deleteUser(user.id);
       setUsers((previousUsers) => previousUsers.filter((existingUser) => existingUser.id !== user.id));
+      await onUserDeleted?.();
     } catch (deleteError: unknown) {
       setError(deleteError instanceof Error ? deleteError.message : 'Could not delete user.');
     } finally {

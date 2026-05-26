@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowUpDown, BarChart3, Film, LayoutGrid, List, Plus, Shield, TableIcon } from 'lucide-react';
+import { ArrowUp, ArrowUpDown, BarChart3, Film, LayoutGrid, List, Plus, Search, Shield, TableIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { MovieLog } from '../types';
@@ -27,8 +27,10 @@ export function MovieDiary({
     hasMore,
     loadMore,
     totalMovies,
+    searchQuery,
     handleViewModeChange,
     handleSortChange,
+    handleSearchChange,
     getSortDirection,
     goToStatistics,
     goToCustomLists,
@@ -127,21 +129,34 @@ export function MovieDiary({
         </div>
 
         <div className="mb-4 flex justify-end">
-          <div className="flex gap-2 rounded-lg bg-[#223662] p-1">
-            <button
-              aria-label="Table view"
-              onClick={() => handleViewModeChange('table')}
-              className={`btn-press rounded-md p-2 transition-all ${viewMode === 'table' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
-            >
-              <TableIcon className="h-4 w-4" />
-            </button>
-            <button
-              aria-label="Card view"
-              onClick={() => handleViewModeChange('card')}
-              className={`btn-press rounded-md p-2 transition-all ${viewMode === 'card' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
+          <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <label className="flex w-full items-center gap-3 rounded-lg border border-[#B9A5D2]/20 bg-[#223662] px-4 py-3 md:max-w-md">
+              <Search className="h-4 w-4 text-[#E0BAAA]" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                placeholder="Search by title, review, date, or link"
+                className="w-full bg-transparent text-[#F0E8FA] outline-none placeholder:text-[#B9A5D2]/55"
+                aria-label="Search movies"
+              />
+            </label>
+            <div className="flex gap-2 rounded-lg bg-[#223662] p-1">
+              <button
+                aria-label="Table view"
+                onClick={() => handleViewModeChange('table')}
+                className={`btn-press rounded-md p-2 transition-all ${viewMode === 'table' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
+              >
+                <TableIcon className="h-4 w-4" />
+              </button>
+              <button
+                aria-label="Card view"
+                onClick={() => handleViewModeChange('card')}
+                className={`btn-press rounded-md p-2 transition-all ${viewMode === 'card' ? 'bg-[#E0BAAA] text-[#261834]' : 'text-[#B9A5D2]'}`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -182,7 +197,9 @@ export function MovieDiary({
                 {totalMovies === 0 && (
                   <tr>
                     <td colSpan={2} className="p-8 text-center italic opacity-50">
-                      No movies logged yet. Click "Log New Movie" to start!
+                      {searchQuery.trim()
+                        ? 'No movies match your search yet.'
+                        : 'No movies logged yet. Click "Log New Movie" to start!'}
                     </td>
                   </tr>
                 )}
@@ -209,6 +226,13 @@ export function MovieDiary({
                 </div>
               </div>
             ))}
+            {totalMovies === 0 && (
+              <div className="rounded-lg bg-[#223662] p-8 text-center italic opacity-60">
+                {searchQuery.trim()
+                  ? 'No movies match your search yet.'
+                  : 'No movies logged yet. Click "Log New Movie" to start!'}
+              </div>
+            )}
           </div>
         )}
 

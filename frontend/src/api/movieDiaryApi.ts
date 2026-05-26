@@ -70,6 +70,7 @@ export interface MovieDiaryApi {
   deleteFrame(movieId: string, frameId: string): Promise<void>;
   getAllLists(): Promise<CustomList[]>;
   createList(name: string, description: string): Promise<CustomList>;
+  updateList(listId: string, name: string, description: string): Promise<CustomList>;
   deleteList(listId: string): Promise<void>;
   addMovieToList(listId: string, movieId: string): Promise<CustomList>;
   removeMovieFromList(listId: string, movieId: string): Promise<CustomList>;
@@ -296,6 +297,13 @@ export const movieDiaryApi: MovieDiaryApi = {
   createList(name: string, description: string) {
     return request<CustomList>('/lists', {
       method: 'POST',
+      body: JSON.stringify({ name, description }),
+    });
+  },
+
+  updateList(listId: string, name: string, description: string) {
+    return request<CustomList>(`/lists/${listId}`, {
+      method: 'PUT',
       body: JSON.stringify({ name, description }),
     });
   },

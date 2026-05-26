@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { MovieInput, MovieLog, SavedFrame } from './types';
+import type { CustomList, MovieInput, MovieLog, SavedFrame } from './types';
 import { AccountMenu } from './components/AccountMenu';
 import { LandingPage } from './components/LandingPage';
 import { MovieDiary } from './components/MovieDiary';
@@ -11,10 +11,8 @@ import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
-import { Statistics } from './components/Statistics';
 import { CustomLists } from './components/CustomLists';
 import { AdminDashboard } from './components/AdminDashboard';
-import { SecurityPage } from './components/SecurityPage';
 import { useAppState } from './hooks/useAppState';
 import { useUserActivity } from './hooks/useUserActivity';
 import { movieDiaryApi } from './api/movieDiaryApi';
@@ -29,6 +27,16 @@ import {
 
 const LOGOUT_ACTIVITY_EVENTS: Array<keyof WindowEventMap> = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
 const SESSION_CHECK_INTERVAL_MS = 30 * 1000;
+const Statistics = lazy(async () => ({ default: (await import('./components/Statistics')).Statistics }));
+const SecurityPage = lazy(async () => ({ default: (await import('./components/SecurityPage')).SecurityPage }));
+
+function RouteScreenFallback({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen bg-[#261834] flex items-center justify-center text-[#B9A5D2]">
+      {message}
+    </div>
+  );
+}
 
 function DiaryRoute({ movieLogs, onAddClick, onSelectMovie, accountMenu }: {
   movieLogs: MovieLog[];
@@ -105,12 +113,16 @@ function MovieDetailRoute({
   onDelete,
   onAddFrame,
   onDeleteFrame,
+  customLists,
+  onAddMovieToList,
   accountMenu,
 }: {
   movieLogs: MovieLog[];
   onDelete: (id: string) => Promise<boolean>;
   onAddFrame: (movieId: string, frameData: Omit<SavedFrame, 'id'>) => Promise<boolean>;
   onDeleteFrame: (movieId: string, frameId: string) => Promise<boolean>;
+  customLists: CustomList[];
+  onAddMovieToList: (listId: string, movieId: string) => Promise<boolean>;
   accountMenu?: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -175,6 +187,8 @@ function MovieDetailRoute({
       onEdit={() => navigate(`/diary/${movie.id}/edit`)}
       onAddFrame={onAddFrame}
       onDeleteFrame={onDeleteFrame}
+      customLists={customLists}
+      onAddMovieToList={onAddMovieToList}
     />
   );
 }
@@ -263,10 +277,12 @@ export default function App() {
     operationError,
     clearOperationError,
     syncPendingOperations,
+    refreshLists,
     handleAddMovie,
     handleUpdateMovie,
     handleDeleteMovie,
     handleCreateList,
+    handleUpdateList,
     handleDeleteList,
     handleAddMovieToList,
     handleRemoveMovieFromList,
@@ -486,7 +502,9 @@ export default function App() {
           path="/statistics"
           element={(
             <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser}>
-              <Statistics movieLogs={movieLogs} accountMenu={accountMenuNode} />
+              <Suspense fallback={<RouteScreenFallback message="Loading statistics..." />}>
+                <Statistics movieLogs={movieLogs} accountMenu={accountMenuNode} />
+              </Suspense>
             </AuthGate>
           )}
         />
@@ -494,7 +512,11 @@ export default function App() {
           path="/admin"
           element={
             <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser} requiredRole="ADMIN">
-              <AdminDashboard onBack={() => navigate('/diary')} accountMenu={accountMenuNode} />
+              <AdminDashboard
+                onBack={() => navigate('/diary')}
+                accountMenu={accountMenuNode}
+                onUserDeleted={refreshLists}
+              />
             </AuthGate>
           }
         />
@@ -502,7 +524,9 @@ export default function App() {
           path="/security"
           element={(
             <AuthGate isSessionResolved={isSessionResolved} sessionUser={sessionUser}>
-              <SecurityPage onLoggedOutSecurityChange={handleSecuritySessionReset} />
+              <Suspense fallback={<RouteScreenFallback message="Loading security settings..." />}>
+                <SecurityPage onLoggedOutSecurityChange={handleSecuritySessionReset} />
+              </Suspense>
             </AuthGate>
           )}
         />
@@ -514,6 +538,7 @@ export default function App() {
                 movieLogs={movieLogs}
                 customLists={customLists}
                 onCreateList={handleCreateList}
+                onUpdateList={handleUpdateList}
                 onDeleteList={handleDeleteList}
                 onAddMovieToList={handleAddMovieToList}
                 onRemoveMovieFromList={handleRemoveMovieFromList}
@@ -556,6 +581,8 @@ export default function App() {
                 onDelete={handleDeleteMovie}
                 onAddFrame={handleAddFrameToMovie}
                 onDeleteFrame={handleDeleteFrameFromMovie}
+                customLists={customLists}
+                onAddMovieToList={handleAddMovieToList}
               />
             </AuthGate>
           }

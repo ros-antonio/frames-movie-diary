@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { config } from './config.js';
 import { apiRoutes } from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { authenticate } from './middleware/auth.js';
@@ -8,8 +9,14 @@ import { globalApiLimiter, globalApiSlowdown } from './middleware/abuseProtectio
 export function createApp() {
   const app = express();
 
+  if (config.trustProxy) {
+    app.set('trust proxy', true);
+  }
+
   app.use(cors({
-    origin: true,
+    origin: config.corsAllowedOrigins.length > 0
+      ? config.corsAllowedOrigins
+      : true,
     credentials: true,
   }));
   app.use(express.json({ limit: '10mb' }));

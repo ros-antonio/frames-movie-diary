@@ -71,6 +71,74 @@ describe('MovieDetail', () => {
     expect(screen.getByRole('link', { name: 'magnet:?xt=urn:btih:aabbcc' })).toBeInTheDocument();
   });
 
+  it('opens add-to-list modal and calls onAddMovieToList', async () => {
+    const user = userEvent.setup();
+    const onAddMovieToList = vi.fn();
+
+    render(
+      <MovieDetail
+        movie={baseMovie}
+        customLists={[
+          { id: 'list-1', name: 'Favorites', description: 'Top picks', movieIds: [] },
+          { id: 'list-2', name: 'Watched', description: 'Already there', movieIds: ['movie-1'] },
+        ]}
+        onBack={vi.fn()}
+        onDelete={vi.fn()}
+        onEdit={vi.fn()}
+        onAddFrame={vi.fn()}
+        onAddMovieToList={onAddMovieToList}
+      />,
+    );
+
+    await user.click(screen.getByTitle('Add to Custom List'));
+    expect(screen.getByRole('heading', { name: 'Add to Custom List' })).toBeInTheDocument();
+    expect(screen.getByText('Favorites')).toBeInTheDocument();
+    expect(screen.getAllByText('Watched')).toHaveLength(1);
+
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(onAddMovieToList).toHaveBeenCalledWith('list-1', 'movie-1');
+  });
+
+  it('shows which custom lists already contain the movie', () => {
+    render(
+      <MovieDetail
+        movie={baseMovie}
+        customLists={[
+          { id: 'list-1', name: 'Favorites', description: 'Top picks', movieIds: ['movie-1'] },
+          { id: 'list-2', name: 'Weekend', description: 'For Saturday', movieIds: ['movie-1', 'movie-2'] },
+          { id: 'list-3', name: 'Watch Later', description: 'Not this one', movieIds: [] },
+        ]}
+        onBack={vi.fn()}
+        onDelete={vi.fn()}
+        onEdit={vi.fn()}
+        onAddFrame={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('In Custom Lists')).toBeInTheDocument();
+    expect(screen.getByText('Favorites')).toBeInTheDocument();
+    expect(screen.getByText('Weekend')).toBeInTheDocument();
+    expect(screen.queryByText('Watch Later')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty custom-list state when the movie is not in any list', () => {
+    render(
+      <MovieDetail
+        movie={baseMovie}
+        customLists={[
+          { id: 'list-1', name: 'Watch Later', description: 'Not this one', movieIds: [] },
+        ]}
+        onBack={vi.fn()}
+        onDelete={vi.fn()}
+        onEdit={vi.fn()}
+        onAddFrame={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Not added to any custom list yet.')).toBeInTheDocument();
+  });
+
   it('opens upload modal and validates required fields', async () => {
     const user = userEvent.setup();
 

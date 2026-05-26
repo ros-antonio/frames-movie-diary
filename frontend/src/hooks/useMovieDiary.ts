@@ -10,6 +10,7 @@ export function useMovieDiary(movieLogs: MovieLog[], itemsPerBatch: number = 12)
   const [visibleCount, setVisibleCount] = useState(itemsPerBatch);
   const [savedPreferences] = useState(() => getPreferences());
   const [viewMode, setViewMode] = useState<ViewMode>(savedPreferences.viewMode);
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<{ field: SortField; order: SortOrder } | null>(
     savedPreferences.sortBy === 'none' || savedPreferences.sortOrder === 'none'
       ? null
@@ -17,7 +18,21 @@ export function useMovieDiary(movieLogs: MovieLog[], itemsPerBatch: number = 12)
   );
 
   const sortedMovies = useMemo(() => {
-    const items = [...movieLogs];
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const filteredItems = normalizedQuery
+      ? movieLogs.filter((movie) => {
+        const searchableFields = [
+          movie.movieName,
+          movie.review ?? '',
+          movie.watchDate,
+          movie.movieLink ?? '',
+        ];
+
+        return searchableFields.some((field) => field.toLowerCase().includes(normalizedQuery));
+      })
+      : movieLogs;
+
+    const items = [...filteredItems];
     if (sortConfig) {
       items.sort((a, b) => {
         const aValue = a[sortConfig.field].toLowerCase();
@@ -28,7 +43,7 @@ export function useMovieDiary(movieLogs: MovieLog[], itemsPerBatch: number = 12)
       });
     }
     return items;
-  }, [movieLogs, sortConfig]);
+  }, [movieLogs, searchQuery, sortConfig]);
 
   const boundedVisibleCount = Math.min(Math.max(visibleCount, itemsPerBatch), Math.max(sortedMovies.length, itemsPerBatch));
   const currentMovies = sortedMovies.slice(0, boundedVisibleCount);
@@ -52,6 +67,11 @@ export function useMovieDiary(movieLogs: MovieLog[], itemsPerBatch: number = 12)
   };
 
   return {
+    searchQuery,
+    setSearchQuery: (value: string) => {
+      setSearchQuery(value);
+      resetVisible();
+    },
     viewMode,
     setViewMode,
     currentMovies,

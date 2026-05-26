@@ -154,6 +154,7 @@ describe('AdminDashboard', () => {
   it('deletes another user and keeps current admin protected from self-delete', async () => {
     const user = userEvent.setup();
     localStorage.setItem('userId', 'admin-1');
+    const onUserDeleted = vi.fn().mockResolvedValue(undefined);
 
     vi.spyOn(movieDiaryApi, 'getUsers').mockResolvedValue([
       {
@@ -180,7 +181,7 @@ describe('AdminDashboard', () => {
     vi.spyOn(movieDiaryApi, 'deleteUser').mockResolvedValue();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-    render(<AdminDashboard onBack={vi.fn()} />);
+    render(<AdminDashboard onBack={vi.fn()} onUserDeleted={onUserDeleted} />);
 
     expect(await screen.findByText('Regular User')).toBeInTheDocument();
 
@@ -193,6 +194,10 @@ describe('AdminDashboard', () => {
 
     await waitFor(() => {
       expect(movieDiaryApi.deleteUser).toHaveBeenCalledWith('user-2');
+    });
+
+    await waitFor(() => {
+      expect(onUserDeleted).toHaveBeenCalledTimes(1);
     });
 
     await waitFor(() => {

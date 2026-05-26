@@ -15,6 +15,8 @@ interface CustomTooltipProps {
   payload?: Array<{ value: number; payload: { rating: string } }>;
 }
 
+const STAR_SYMBOL = '\u2605';
+
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
@@ -23,7 +25,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
         style={{ backgroundColor: '#223662', border: '1px solid rgba(185, 165, 210, 0.2)' }}
       >
         <p className="font-medium" style={{ color: '#E0BAAA' }}>
-          {payload[0].payload.rating} ★
+          {`${payload[0].payload.rating} ${STAR_SYMBOL}`}
         </p>
         <p className="text-sm" style={{ color: '#B9A5D2' }}>
           {payload[0].value} {payload[0].value === 1 ? 'movie' : 'movies'}
@@ -31,6 +33,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
       </div>
     );
   }
+
   return null;
 };
 
@@ -41,7 +44,6 @@ export function Statistics({ movieLogs, accountMenu }: StatisticsProps) {
   return (
     <div className="min-h-screen p-8" style={{ backgroundColor: '#261834' }}>
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Back Button */}
         <div className="mb-4 flex items-center justify-between gap-4">
           <button
             onClick={() => navigate('/diary')}
@@ -53,17 +55,15 @@ export function Statistics({ movieLogs, accountMenu }: StatisticsProps) {
           {accountMenu}
         </div>
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <BarChart3 className="w-8 h-8" style={{ color: '#E0BAAA' }} />
+        <div className="mb-8 flex items-center gap-3">
+          <BarChart3 className="h-8 w-8" style={{ color: '#E0BAAA' }} />
           <h1 className="text-4xl font-bold" style={{ color: '#B9A5D2' }}>
             Rating Statistics
           </h1>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="rounded-lg p-6 space-y-2" style={{ backgroundColor: '#223662' }}>
+        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="space-y-2 rounded-lg p-6" style={{ backgroundColor: '#223662' }}>
             <p className="text-sm opacity-70" style={{ color: '#B9A5D2' }}>
               Total Movies
             </p>
@@ -71,28 +71,27 @@ export function Statistics({ movieLogs, accountMenu }: StatisticsProps) {
               {totalMovies}
             </p>
           </div>
-          <div className="rounded-lg p-6 space-y-2" style={{ backgroundColor: '#223662' }}>
+          <div className="space-y-2 rounded-lg p-6" style={{ backgroundColor: '#223662' }}>
             <p className="text-sm opacity-70" style={{ color: '#B9A5D2' }}>
               Average Rating
             </p>
             <p className="text-3xl font-bold" style={{ color: '#E0BAAA' }}>
-              {averageRating.toFixed(1)} ★
+              {`${averageRating.toFixed(1)} ${STAR_SYMBOL}`}
             </p>
           </div>
-          <div className="rounded-lg p-6 space-y-2" style={{ backgroundColor: '#223662' }}>
+          <div className="space-y-2 rounded-lg p-6" style={{ backgroundColor: '#223662' }}>
             <p className="text-sm opacity-70" style={{ color: '#B9A5D2' }}>
               Most Common Rating
             </p>
             <p className="text-3xl font-bold" style={{ color: '#FFD700' }}>
-              {mostCommonRating === '-' ? '-' : `${mostCommonRating} ★`}
+              {mostCommonRating === '-' ? '-' : `${mostCommonRating} ${STAR_SYMBOL}`}
             </p>
           </div>
         </div>
 
-        {/* Chart */}
         {totalMovies > 0 ? (
           <div className="rounded-lg p-8" style={{ backgroundColor: '#223662' }}>
-            <h2 className="text-2xl mb-6" style={{ color: '#B9A5D2' }}>
+            <h2 className="mb-6 text-2xl" style={{ color: '#B9A5D2' }}>
               Rating Distribution
             </h2>
             <ResponsiveContainer width="100%" height={400}>
@@ -132,7 +131,7 @@ export function Statistics({ movieLogs, accountMenu }: StatisticsProps) {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <p className="text-sm text-center mt-6 opacity-70" style={{ color: '#B9A5D2' }}>
+            <p className="mt-6 text-center text-sm opacity-70" style={{ color: '#B9A5D2' }}>
               Showing the distribution of ratings from 0.5 to 5 stars (0.5 increments)
             </p>
           </div>

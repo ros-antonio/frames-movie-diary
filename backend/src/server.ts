@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { prisma } from './repositories/prismaClient.js';
 import { config } from './config.js';
 import { createServer } from 'node:https';
+import { createServer as createHttpServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import selfsigned from 'selfsigned';
@@ -22,7 +23,7 @@ async function loadHttpsCredentials() {
   }
 
   if (config.nodeEnv === 'production') {
-    throw new Error('Production HTTPS requires SSL_KEY_PATH and SSL_CERT_PATH.');
+    return null;
   }
 
   const detectedHosts = new Set(['localhost', '127.0.0.1', ...config.sslHosts]);
@@ -72,9 +73,13 @@ async function loadHttpsCredentials() {
 }
 
 const httpsCredentials = await loadHttpsCredentials();
-const server = createServer(httpsCredentials, app).listen(port, '0.0.0.0', () => {
-  console.log(`Backend listening over HTTPS on port:${port}`);
-});
+const server = httpsCredentials
+  ? createServer(httpsCredentials, app).listen(port, '0.0.0.0', () => {
+    console.log(`Backend listening over HTTPS on port:${port}`);
+  })
+  : createHttpServer(app).listen(port, '0.0.0.0', () => {
+    console.log(`Backend listening over HTTP on port:${port} behind an external TLS terminator.`);
+  });
 
 const shutdown = async () => {
   console.log('Shutting down gracefully...');

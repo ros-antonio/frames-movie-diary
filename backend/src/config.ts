@@ -40,6 +40,24 @@ function readOptionalListEnv(key: string): string[] {
     .filter(Boolean);
 }
 
+function readOptionalBoolEnv(key: string, fallback: boolean): boolean {
+  const rawValue = process.env[key];
+
+  if (!rawValue?.trim()) {
+    return fallback;
+  }
+
+  if (rawValue === 'true') {
+    return true;
+  }
+
+  if (rawValue === 'false') {
+    return false;
+  }
+
+  throw new Error(`Environment variable ${key} must be either "true" or "false"`);
+}
+
 export const config = {
   databaseUrl: readRequiredEnv('DATABASE_URL'),
   jwtSecret: readRequiredEnv('JWT_SECRET'),
@@ -48,6 +66,8 @@ export const config = {
   sslKeyPath: process.env.SSL_KEY_PATH?.trim() || null,
   sslCertPath: process.env.SSL_CERT_PATH?.trim() || null,
   sslHosts: readOptionalListEnv('SSL_HOSTS'),
+  corsAllowedOrigins: readOptionalListEnv('CORS_ALLOWED_ORIGINS'),
+  trustProxy: readOptionalBoolEnv('TRUST_PROXY', false),
   authIssuer: process.env.AUTH_ISSUER?.trim() || 'Frames Movie Diary',
   exposeRecoveryTokens: process.env.EXPOSE_RECOVERY_TOKENS?.trim() === 'true' || process.env.NODE_ENV !== 'production',
 };
