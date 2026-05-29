@@ -14,7 +14,6 @@ function renderForgotPasswordPage() {
     <MemoryRouter initialEntries={['/forgot-password']}>
       <Routes>
         <Route path="/login" element={<div>Login Route</div>} />
-        <Route path="/reset-password" element={<div>Reset Route</div>} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       </Routes>
     </MemoryRouter>,
@@ -26,26 +25,22 @@ describe('ForgotPasswordPage', () => {
     vi.mocked(forgotPassword).mockReset();
   });
 
-  it('submits the email, shows the reset token, and navigates to reset', async () => {
+  it('submits the email and shows a neutral success message', async () => {
     const user = userEvent.setup();
     vi.mocked(forgotPassword).mockResolvedValue({
       message: 'Recovery instructions generated.',
-      resetToken: 'reset-token-123',
     });
 
     renderForgotPasswordPage();
 
     await user.type(screen.getByLabelText('Email'), 'user@example.com');
-    await user.click(screen.getByRole('button', { name: 'Generate recovery token' }));
+    await user.click(screen.getByRole('button', { name: 'Request password reset' }));
 
     await waitFor(() => {
       expect(forgotPassword).toHaveBeenCalledWith({ email: 'user@example.com' });
     });
     expect(await screen.findByText('Recovery instructions generated.')).toBeInTheDocument();
-    expect(screen.getByText('reset-token-123')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Continue to reset password' }));
-    expect(await screen.findByText('Reset Route')).toBeInTheDocument();
+    expect(screen.queryByText('Reset token')).not.toBeInTheDocument();
   });
 
   it('shows the backend error when recovery cannot start', async () => {
@@ -55,7 +50,7 @@ describe('ForgotPasswordPage', () => {
     renderForgotPasswordPage();
 
     await user.type(screen.getByLabelText('Email'), 'user@example.com');
-    await user.click(screen.getByRole('button', { name: 'Generate recovery token' }));
+    await user.click(screen.getByRole('button', { name: 'Request password reset' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not start password recovery');
   });

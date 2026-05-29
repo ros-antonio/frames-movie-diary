@@ -30,6 +30,13 @@ describe('config', () => {
     expect(config.corsAllowedOrigins).toEqual([]);
     expect(config.trustProxy).toBe(false);
     expect(config.authIssuer).toBe('Frames Movie Diary');
+    expect(config.appBaseUrl).toBeNull();
+    expect(config.smtpHost).toBeNull();
+    expect(config.smtpPort).toBeNull();
+    expect(config.smtpSecure).toBe(false);
+    expect(config.smtpUser).toBeNull();
+    expect(config.smtpPass).toBeNull();
+    expect(config.smtpFrom).toBeNull();
     expect(config.exposeRecoveryTokens).toBe(true);
   });
 
@@ -40,6 +47,13 @@ describe('config', () => {
       CORS_ALLOWED_ORIGINS: ' https://frames.example, https://app.example ',
       TRUST_PROXY: 'true',
       AUTH_ISSUER: 'Custom Issuer',
+      APP_BASE_URL: 'https://frames.example',
+      SMTP_HOST: 'smtp.example.com',
+      SMTP_PORT: '465',
+      SMTP_SECURE: 'true',
+      SMTP_USER: 'mailer@example.com',
+      SMTP_PASS: 'smtp-secret',
+      SMTP_FROM: 'Frames <mailer@example.com>',
       EXPOSE_RECOVERY_TOKENS: 'false',
       NODE_ENV: 'production',
     });
@@ -49,6 +63,13 @@ describe('config', () => {
     expect(config.corsAllowedOrigins).toEqual(['https://frames.example', 'https://app.example']);
     expect(config.trustProxy).toBe(true);
     expect(config.authIssuer).toBe('Custom Issuer');
+    expect(config.appBaseUrl).toBe('https://frames.example');
+    expect(config.smtpHost).toBe('smtp.example.com');
+    expect(config.smtpPort).toBe(465);
+    expect(config.smtpSecure).toBe(true);
+    expect(config.smtpUser).toBe('mailer@example.com');
+    expect(config.smtpPass).toBe('smtp-secret');
+    expect(config.smtpFrom).toBe('Frames <mailer@example.com>');
     expect(config.exposeRecoveryTokens).toBe(false);
   });
 
@@ -67,6 +88,12 @@ describe('config', () => {
   it('throws when optional boolean environment variables are invalid', async () => {
     await expect(importConfigWithEnv({ TRUST_PROXY: 'sometimes' })).rejects.toThrow(
       'Environment variable TRUST_PROXY must be either "true" or "false"',
+    );
+  });
+
+  it('throws when only one SMTP credential is provided', async () => {
+    await expect(importConfigWithEnv({ SMTP_USER: 'mailer@example.com' })).rejects.toThrow(
+      'SMTP_USER and SMTP_PASS must either both be set or both be empty',
     );
   });
 

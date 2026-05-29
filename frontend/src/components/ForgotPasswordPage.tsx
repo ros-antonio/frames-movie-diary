@@ -7,7 +7,6 @@ export function ForgotPasswordPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState<string | null>(null);
-  const [resetToken, setResetToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -17,7 +16,6 @@ export function ForgotPasswordPage() {
     try {
       const payload = await forgotPassword({ email });
       setMessage(payload.message);
-      setResetToken(payload.resetToken ?? null);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Could not start password recovery');
     }
@@ -42,7 +40,7 @@ export function ForgotPasswordPage() {
 
         <div className="text-center">
           <h1 className="text-3xl mb-2 text-[#B9A5D2]">Recover Password</h1>
-          <p className="opacity-80 text-[#B9A5D2]">Generate a reset token for your account</p>
+          <p className="opacity-80 text-[#B9A5D2]">Request a password reset email for your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -63,27 +61,13 @@ export function ForgotPasswordPage() {
                 required
               />
             </div>
-
-            {resetToken ? (
-              <div className="space-y-2 rounded-md border border-[#E0BAAA]/30 bg-[#261834] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-[#E0BAAA]">Reset token</p>
-                <p className="break-all text-sm text-[#F0E8FA]">{resetToken}</p>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/reset-password?token=${encodeURIComponent(resetToken)}`)}
-                  className="text-sm text-[#E0BAAA] hover:underline btn-press"
-                >
-                  Continue to reset password
-                </button>
-              </div>
-            ) : null}
           </div>
 
           <button
             type="submit"
             className="w-full py-3 rounded-md font-semibold bg-[#E0BAAA] text-[#261834] hover:opacity-90 transition-opacity btn-press"
           >
-            Generate recovery token
+            Request password reset
           </button>
         </form>
       </div>

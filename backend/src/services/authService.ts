@@ -6,6 +6,7 @@ import { buildOtpAuthUri, generateRecoveryCodes, generateTotpSecret, hashSensiti
 import { signAuthToken, signMfaChallengeToken, type AuthTokenPayload, type MfaChallengeTokenPayload, verifyToken } from '../utils/authSession.js';
 import { config } from '../config.js';
 import type { PermissionName } from '../utils/permissions.js';
+import { emailService } from './emailService.js';
 
 interface RegisterInput {
   name: string;
@@ -140,7 +141,10 @@ class AuthService {
   private async findUserForPasswordReset(email: string) {
     return prisma.user.findUnique({
       where: { email },
-      select: { id: true },
+      select: {
+        id: true,
+        email: true,
+      },
     });
   }
 
@@ -418,6 +422,10 @@ class AuthService {
   }
 
   async requestPasswordReset(input: PasswordResetRequestInput) {
+    if (!config.exposeRecoveryTokens && !emailService.isPasswordResetDeliveryConfigured()) {
+      throw new HttpError(503, 'Password reset email delivery is not configured');
+    }
+
     const email = normalizeEmail(input.email);
     const user = await this.findUserForPasswordReset(email);
 
@@ -444,6 +452,12 @@ class AuthService {
         },
       }),
     ]);
+
+    await emailService.sendPasswordResetEmail({
+      to: user.email,
+      resetToken: rawToken,
+      expiresAt,
+    });
 
     return {
       message: 'If an account exists for that email, recovery instructions were generated.',

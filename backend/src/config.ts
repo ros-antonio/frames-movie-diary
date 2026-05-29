@@ -58,6 +58,11 @@ function readOptionalBoolEnv(key: string, fallback: boolean): boolean {
   throw new Error(`Environment variable ${key} must be either "true" or "false"`);
 }
 
+function readOptionalStringEnv(key: string): string | null {
+  const rawValue = process.env[key];
+  return rawValue?.trim() || null;
+}
+
 export const config = {
   databaseUrl: readRequiredEnv('DATABASE_URL'),
   jwtSecret: readRequiredEnv('JWT_SECRET'),
@@ -69,8 +74,19 @@ export const config = {
   corsAllowedOrigins: readOptionalListEnv('CORS_ALLOWED_ORIGINS'),
   trustProxy: readOptionalBoolEnv('TRUST_PROXY', false),
   authIssuer: process.env.AUTH_ISSUER?.trim() || 'Frames Movie Diary',
+  appBaseUrl: readOptionalStringEnv('APP_BASE_URL'),
+  smtpHost: readOptionalStringEnv('SMTP_HOST'),
+  smtpPort: process.env.SMTP_PORT?.trim() ? readOptionalIntEnv('SMTP_PORT', 587) : null,
+  smtpSecure: readOptionalBoolEnv('SMTP_SECURE', false),
+  smtpUser: readOptionalStringEnv('SMTP_USER'),
+  smtpPass: readOptionalStringEnv('SMTP_PASS'),
+  smtpFrom: readOptionalStringEnv('SMTP_FROM'),
   exposeRecoveryTokens: process.env.EXPOSE_RECOVERY_TOKENS?.trim() === 'true' || process.env.NODE_ENV !== 'production',
 };
+
+if ((config.smtpUser && !config.smtpPass) || (!config.smtpUser && config.smtpPass)) {
+  throw new Error('SMTP_USER and SMTP_PASS must either both be set or both be empty');
+}
 
 if (config.nodeEnv === 'test' && !config.databaseUrl.includes('_test')) {
   throw new Error(`Refusing to run test-mode backend against a non-test database: ${config.databaseUrl}`);

@@ -47,13 +47,22 @@ SSL_HOSTS=""
 CORS_ALLOWED_ORIGINS=""
 TRUST_PROXY="false"
 AUTH_ISSUER="Frames Movie Diary"
+APP_BASE_URL="https://localhost:5173"
+SMTP_HOST=""
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER=""
+SMTP_PASS=""
+SMTP_FROM=""
 EXPOSE_RECOVERY_TOKENS="true"
 ```
 
 Notes:
 
 - `AUTH_ISSUER` is used for MFA authenticator app labels and OTP metadata.
-- `EXPOSE_RECOVERY_TOKENS` should stay `true` only for local/demo flows where you want password reset tokens returned in the API response instead of being delivered externally.
+- `APP_BASE_URL` should point to the frontend origin used by your users, for example `https://your-app.example.com`.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` are used to send password reset emails.
+- `EXPOSE_RECOVERY_TOKENS` should stay `true` only for local/demo flows where you want password reset tokens returned in the API response instead of being delivered externally. Set it to `false` once SMTP delivery is configured.
 - `CORS_ALLOWED_ORIGINS` can be a comma-separated allowlist for deployed frontend origins.
 - `TRUST_PROXY` should be set to `true` when the backend runs behind a cloud proxy or load balancer.
 
@@ -133,6 +142,28 @@ Notes:
 - if `SSL_KEY_PATH` and `SSL_CERT_PATH` are empty, a temporary self-signed certificate is generated
 - the generated development certificate includes `localhost`, `127.0.0.1`, detected LAN IPv4 addresses, and any extra hosts listed in `SSL_HOSTS`
 - in production, if `SSL_KEY_PATH` and `SSL_CERT_PATH` are not set, the backend serves HTTP and should sit behind a TLS terminator such as Nginx, Caddy, or a cloud platform proxy that provides Let's Encrypt certificates
+
+### Password reset email setup
+
+To deliver password reset links by email, configure these backend env values:
+
+```env
+APP_BASE_URL="https://your-frontend-domain.example"
+SMTP_HOST="smtp.your-provider.example"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="smtp-username"
+SMTP_PASS="smtp-password"
+SMTP_FROM="Frames Movie Diary <no-reply@your-domain.example>"
+EXPOSE_RECOVERY_TOKENS="false"
+```
+
+Notes:
+
+- `APP_BASE_URL` must be the public frontend origin that serves `/reset-password`.
+- `SMTP_SECURE="true"` is usually used with port `465`.
+- `SMTP_SECURE="false"` is usually used with port `587`.
+- once SMTP is configured, the forgot-password page will only show a neutral success message and the reset link will be delivered by email.
 
 If port `4000` is already in use:
 
