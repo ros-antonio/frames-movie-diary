@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MovieDetail } from './MovieDetail';
 import type { MovieLog } from '../types';
 
@@ -12,6 +12,10 @@ const baseMovie: MovieLog = {
 };
 
 describe('MovieDetail', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('renders unrated state when rating is missing', () => {
     render(<MovieDetail movie={baseMovie} onBack={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} onAddFrame={vi.fn()} />);
 
@@ -46,21 +50,12 @@ describe('MovieDetail', () => {
     expect(onDelete).toHaveBeenCalledWith('movie-1');
   });
 
-  it('shows feature alert when clicking Capture New Frame', async () => {
+  it('opens the capture modal from Capture New Frame', async () => {
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
 
-    render(<MovieDetail movie={baseMovie} onBack={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} onAddFrame={vi.fn()} />);
-
-    await user.click(screen.getByRole('button', { name: /Capture New Frame/i }));
-
-    expect(alertSpy).toHaveBeenCalledOnce();
-  });
-
-  it('renders movie link when provided', () => {
     render(
       <MovieDetail
-        movie={{ ...baseMovie, movieLink: 'magnet:?xt=urn:btih:aabbcc' }}
+        movie={{ ...baseMovie, movieLink: 'https://cdn.example.com/arrival.mp4' }}
         onBack={vi.fn()}
         onDelete={vi.fn()}
         onEdit={vi.fn()}
@@ -68,7 +63,24 @@ describe('MovieDetail', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'magnet:?xt=urn:btih:aabbcc' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Capture New Frame/i }));
+
+    expect(screen.getByRole('heading', { name: 'Capture Frames' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://cdn.example.com/arrival.mp4')).toBeInTheDocument();
+  });
+
+  it('renders movie link when provided', () => {
+    render(
+      <MovieDetail
+        movie={{ ...baseMovie, movieLink: 'https://cdn.example.com/amelie.mp4' }}
+        onBack={vi.fn()}
+        onDelete={vi.fn()}
+        onEdit={vi.fn()}
+        onAddFrame={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'https://cdn.example.com/amelie.mp4' })).toBeInTheDocument();
   });
 
   it('opens add-to-list modal and calls onAddMovieToList', async () => {
@@ -200,6 +212,59 @@ describe('MovieDetail', () => {
       }),
     );
     expect(onAddFrame.mock.calls[0][1].imageUrl).toContain('data:image/png;base64,');
+  });
+
+  it('captures the current video frame and saves it with caption', async () => {
+    const user = userEvent.setup();
+    const onAddFrame = vi.fn().mockResolvedValue(true);
+    const drawImage = vi.fn();
+    const getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage,
+    } as unknown as CanvasRenderingContext2D);
+    const toDataUrlSpy = vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,CAPTURED');
+
+    Object.defineProperty(HTMLVideoElement.prototype, 'readyState', {
+      configurable: true,
+      get: () => 4,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', {
+      configurable: true,
+      get: () => 1280,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', {
+      configurable: true,
+      get: () => 720,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, 'currentTime', {
+      configurable: true,
+      get: () => 95,
+    });
+
+    render(
+      <MovieDetail
+        movie={{ ...baseMovie, movieLink: 'https://cdn.example.com/arrival.mp4' }}
+        onBack={vi.fn()}
+        onDelete={vi.fn()}
+        onEdit={vi.fn()}
+        onAddFrame={onAddFrame}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Capture New Frame/i }));
+    await user.type(screen.getByLabelText('FRAME CAPTION'), 'Hallway composition');
+    await user.click(screen.getByRole('button', { name: 'Save Frame' }));
+
+    await waitFor(() => {
+      expect(onAddFrame).toHaveBeenCalledWith('movie-1', {
+        imageUrl: 'data:image/png;base64,CAPTURED',
+        timestamp: '01:35',
+        caption: 'Hallway composition',
+      });
+    });
+
+    expect(getContextSpy).toHaveBeenCalled();
+    expect(toDataUrlSpy).toHaveBeenCalledWith('image/png');
+    expect(drawImage).toHaveBeenCalled();
   });
 
   it('opens and closes frame preview when clicking a saved frame', async () => {

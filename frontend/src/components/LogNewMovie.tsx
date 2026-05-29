@@ -103,13 +103,13 @@ export function LogNewMovie({ onSave, onCancel, initialData, accountMenu }: LogN
 
                         <div className="space-y-2">
                             <label className="text-sm flex items-center gap-2 text-[#E0BAAA]">
-                                <LinkIcon className="w-4 h-4" /> Movie Link (URL or magnet)
+                                <LinkIcon className="w-4 h-4" /> Movie Link (Direct Video URL)
                             </label>
                             <input
                                 type="text"
                                 value={formData.movieLink}
                                 onChange={(e) => setFormData({ ...formData, movieLink: e.target.value })}
-                                placeholder="https://... or magnet:?xt=..."
+                                placeholder="https://example.com/movie.mp4"
                                 className="w-full px-4 py-3 rounded-lg bg-[#1a1f3a] text-[#B9A5D2] border-2 border-[#B9A5D2]/20 outline-none focus:border-[#E0BAAA]/50 input-smooth"
                             />
                             {errors.movieLink && <p className="text-sm text-red-300">{errors.movieLink}</p>}

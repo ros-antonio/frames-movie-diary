@@ -28,7 +28,7 @@ describe('useMovieForm', () => {
     );
   });
 
-  it('submits valid data and keeps rating optional', () => {
+  it('submits valid data with a direct video link and keeps rating optional', () => {
     const onSave = vi.fn();
     const { result } = renderHook(() => useMovieForm(onSave));
 
@@ -39,7 +39,7 @@ describe('useMovieForm', () => {
         watchDate: '2026-03-25',
         rating: '',
         review: 'Great visuals',
-        movieLink: 'magnet:?xt=urn:btih:abc123',
+        movieLink: 'https://media.example.com/dune-trailer.mp4',
       });
     });
 
@@ -54,7 +54,7 @@ describe('useMovieForm', () => {
       watchDate: '2026-03-25',
       rating: undefined,
       review: 'Great visuals',
-      movieLink: 'magnet:?xt=urn:btih:abc123',
+      movieLink: 'https://media.example.com/dune-trailer.mp4',
     });
   });
 

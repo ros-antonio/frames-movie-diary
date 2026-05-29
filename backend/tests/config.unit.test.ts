@@ -10,6 +10,14 @@ async function importConfigWithEnv(env: Record<string, string | undefined>) {
     NODE_ENV: 'development',
     DATABASE_URL: 'postgresql://frames_user:frames_pass@localhost:5432/frames_dev',
     JWT_SECRET: 'test-secret',
+    APP_BASE_URL: undefined,
+    SMTP_HOST: undefined,
+    SMTP_PORT: undefined,
+    SMTP_SECURE: undefined,
+    SMTP_USER: undefined,
+    SMTP_PASS: undefined,
+    SMTP_FROM: undefined,
+    EXPOSE_RECOVERY_TOKENS: undefined,
     ...env,
   };
 

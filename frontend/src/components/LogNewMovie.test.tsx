@@ -31,7 +31,7 @@ describe('LogNewMovie', () => {
     });
   });
 
-  it('submits movie link when provided', async () => {
+  it('submits direct video link when provided', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
 
@@ -46,7 +46,7 @@ describe('LogNewMovie', () => {
     await user.type(titleInput, 'Primer');
     await user.clear(dateInput);
     await user.type(dateInput, '2026-03-24');
-    await user.type(linkInput, 'magnet:?xt=urn:btih:001122334455');
+    await user.type(linkInput, 'https://cdn.example.com/primer.mp4');
 
     await user.click(screen.getByRole('button', { name: /Save Movie/i }));
 
@@ -55,7 +55,7 @@ describe('LogNewMovie', () => {
       watchDate: '2026-03-24',
       rating: undefined,
       review: undefined,
-      movieLink: 'magnet:?xt=urn:btih:001122334455',
+      movieLink: 'https://cdn.example.com/primer.mp4',
     });
   });
 
@@ -159,7 +159,7 @@ describe('LogNewMovie', () => {
 
     expect(onSave).not.toHaveBeenCalled();
     expect(screen.getByText('Please fix the highlighted fields before saving.')).toBeInTheDocument();
-    expect(screen.getByText('Movie link must start with https://, http://, or magnet:')).toBeInTheDocument();
+    expect(screen.getByText('Movie link must start with https:// or http://')).toBeInTheDocument();
   });
 
   it('shows inline message when watch date is in the future', async () => {

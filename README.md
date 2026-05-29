@@ -19,6 +19,15 @@ frames-movie-diary/
 `- docs/
 ```
 
+## Core Features
+
+- Private movie diary with ratings, reviews, and watch dates
+- Custom lists with create, edit, search, add/remove movie, and delete flows
+- Movie detail pages with saved scene captures
+- Direct video URL support for built-in frame capture
+- Manual PNG frame upload with timestamp and caption
+- Authentication with session cookies, MFA, password reset, and admin tools
+
 ## Environment Files
 
 ### Backend
@@ -79,6 +88,11 @@ VITE_API_BASE_URL=/api
 VITE_BACKEND_URL=https://localhost:4000
 VITE_SESSION_IDLE_TIMEOUT_MINUTES=15
 ```
+
+Movie link notes:
+
+- movie links should use direct `http://` or `https://` video URLs
+- browser-playable files such as `.mp4`, `.webm`, or `.ogg` are the intended capture sources
 
 ## Setup
 
@@ -187,6 +201,13 @@ Notes:
 - default URL: `https://localhost:5173`
 - by default, the frontend proxies `/api` to `https://localhost:4000`
 - to use a backend running on a different machine, set `VITE_BACKEND_URL=https://<server-lan-ip>:4000`
+
+## Frame Capture
+
+- from a movie detail page, `Capture New Frame` opens a dedicated capture modal
+- the modal accepts a direct video URL and loads it into a built-in browser player
+- `Save Frame` captures the current video frame, stores it as a PNG data URL, records the playback timestamp automatically, and saves the caption you provide
+- if a video source cannot be captured in-browser, users can still use `Upload PNG Frame` as a fallback
 
 ## Tests
 

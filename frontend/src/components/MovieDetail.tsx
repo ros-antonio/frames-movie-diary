@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { ArrowLeft, Edit, Trash2, Star, Film, Link as LinkIcon, ListPlus, Search, Upload } from 'lucide-react';
 import type { CustomList, MovieLog, SavedFrame } from '../types';
@@ -25,6 +25,11 @@ interface UploadFormData {
 interface UploadErrors {
     imageFile?: string;
     timestamp?: string;
+    caption?: string;
+}
+
+interface CaptureErrors {
+    videoUrl?: string;
     caption?: string;
 }
 
@@ -68,6 +73,39 @@ function validateUploadForm(formData: UploadFormData): UploadErrors {
     return errors;
 }
 
+function validateCaptureWorkspace(input: { videoUrl: string; caption: string }): CaptureErrors {
+    const errors: CaptureErrors = {};
+
+    const trimmedVideoUrl = input.videoUrl.trim();
+    if (!trimmedVideoUrl) {
+        errors.videoUrl = 'Direct video URL is required';
+    } else if (!/^https?:\/\//.test(trimmedVideoUrl)) {
+        errors.videoUrl = 'Video URL must start with https:// or http://';
+    }
+
+    const trimmedCaption = input.caption.trim();
+    if (!trimmedCaption) {
+        errors.caption = 'Caption is required';
+    } else if (trimmedCaption.length > 140) {
+        errors.caption = 'Caption must be 140 characters or fewer';
+    }
+
+    return errors;
+}
+
+function formatVideoTimestamp(totalSeconds: number): string {
+    const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+
+    if (hours > 0) {
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
 function StarRating({ rating = 0 }: { rating?: number }) {
     return (
         <div className="flex gap-1">
@@ -102,16 +140,24 @@ export function MovieDetail({
     accountMenu,
 }: MovieDetailProps) {
     const { handleDelete } = useMovieDetail(movie, onDelete);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isAddToListModalOpen, setIsAddToListModalOpen] = useState(false);
+    const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
     const [listSearchQuery, setListSearchQuery] = useState('');
     const [isSavingUpload, setIsSavingUpload] = useState(false);
+    const [isSavingCapture, setIsSavingCapture] = useState(false);
     const [uploadForm, setUploadForm] = useState<UploadFormData>({
         imageFile: null,
         timestamp: '',
         caption: '',
     });
     const [uploadErrors, setUploadErrors] = useState<UploadErrors>({});
+    const [captureVideoUrl, setCaptureVideoUrl] = useState(movie.movieLink ?? '');
+    const [captureLoadedUrl, setCaptureLoadedUrl] = useState(movie.movieLink ?? '');
+    const [captureCaption, setCaptureCaption] = useState('');
+    const [captureErrors, setCaptureErrors] = useState<CaptureErrors>({});
+    const [captureFeedback, setCaptureFeedback] = useState<string | null>(null);
     const [selectedFrame, setSelectedFrame] = useState<SavedFrame | null>(null);
     const normalizedListSearchQuery = listSearchQuery.trim().toLowerCase();
     const currentLists = customLists.filter((list) => list.movieIds.includes(movie.id));
@@ -125,6 +171,15 @@ export function MovieDetail({
         setIsUploadModalOpen(false);
         setUploadForm({ imageFile: null, timestamp: '', caption: '' });
         setUploadErrors({});
+    };
+
+    const closeCaptureModal = () => {
+        setIsCaptureModalOpen(false);
+        setCaptureVideoUrl(movie.movieLink ?? '');
+        setCaptureLoadedUrl(movie.movieLink ?? '');
+        setCaptureCaption('');
+        setCaptureErrors({});
+        setCaptureFeedback(null);
     };
 
     const closeAddToListModal = () => {
@@ -154,6 +209,86 @@ export function MovieDetail({
             }
         } finally {
             setIsSavingUpload(false);
+        }
+    };
+
+    const openCaptureModal = () => {
+        setCaptureVideoUrl(movie.movieLink ?? '');
+        setCaptureLoadedUrl(movie.movieLink ?? '');
+        setCaptureCaption('');
+        setCaptureErrors({});
+        setCaptureFeedback(null);
+        setIsCaptureModalOpen(true);
+    };
+
+    const handleLoadCaptureVideo = () => {
+        const trimmedVideoUrl = captureVideoUrl.trim();
+        if (!trimmedVideoUrl) {
+            setCaptureErrors({ videoUrl: 'Direct video URL is required', caption: captureErrors.caption });
+            return;
+        }
+
+        if (!/^https?:\/\//.test(trimmedVideoUrl)) {
+            setCaptureErrors({ videoUrl: 'Video URL must start with https:// or http://', caption: captureErrors.caption });
+            return;
+        }
+
+        setCaptureErrors((current) => ({ ...current, videoUrl: undefined }));
+        setCaptureFeedback(null);
+        setCaptureLoadedUrl(trimmedVideoUrl);
+    };
+
+    const handleCaptureFrame = async () => {
+        if (!onAddFrame) {
+            return;
+        }
+
+        const video = videoRef.current;
+        const validationErrors = validateCaptureWorkspace({
+            videoUrl: captureVideoUrl,
+            caption: captureCaption,
+        });
+        setCaptureErrors(validationErrors);
+        if (Object.keys(validationErrors).length > 0) {
+            return;
+        }
+
+        if (!video || !captureLoadedUrl) {
+            setCaptureFeedback('Load a direct video URL before saving a frame.');
+            return;
+        }
+
+        if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
+            setCaptureFeedback('Wait for the video to load before capturing a frame.');
+            return;
+        }
+
+        setIsSavingCapture(true);
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+
+            if (!context) {
+                setCaptureFeedback('Your browser could not prepare a frame capture canvas.');
+                return;
+            }
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageUrl = canvas.toDataURL('image/png');
+            const saved = await onAddFrame(movie.id, {
+                imageUrl,
+                timestamp: formatVideoTimestamp(video.currentTime),
+                caption: captureCaption.trim(),
+            });
+            if (saved !== false) {
+                closeCaptureModal();
+            }
+        } catch {
+            setCaptureFeedback('This video source does not allow in-browser frame capture. Use a direct video URL with browser playback access.');
+        } finally {
+            setIsSavingCapture(false);
         }
     };
 
@@ -292,7 +427,7 @@ export function MovieDetail({
                     )}
 
                     {movie.movieLink && (
-                        <div className="space-y-2 pt-4 border-t border-[#B9A5D2]/20">
+                        <div className="space-y-4 pt-4 border-t border-[#B9A5D2]/20">
                             <h3 className="text-xl flex items-center gap-2" style={{ color: '#E0BAAA' }}>
                                 <LinkIcon className="w-5 h-5" /> Movie Link
                             </h3>
@@ -315,13 +450,16 @@ export function MovieDetail({
                             </h3>
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => alert("Video Capture Mode is a Silver/Gold feature coming next week!")}
-                                    className="flex items-center px-3 py-1.5 rounded-md border text-sm transition-colors border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10"
+                                    type="button"
+                                    onClick={openCaptureModal}
+                                    disabled={!onAddFrame}
+                                    className="flex items-center px-3 py-1.5 rounded-md border text-sm transition-colors border-[#E0BAAA] text-[#E0BAAA] hover:bg-[#E0BAAA]/10 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <Film className="w-4 h-4 mr-2" />
                                     Capture New Frame
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => setIsUploadModalOpen(true)}
                                     className="flex items-center px-3 py-1.5 rounded-md border text-sm transition-colors border-[#B9A5D2] text-[#B9A5D2] hover:bg-[#B9A5D2]/10"
                                 >
@@ -330,6 +468,12 @@ export function MovieDetail({
                                 </button>
                             </div>
                         </div>
+
+                        {captureFeedback && (
+                            <div role="alert" className="rounded-md border border-amber-400/30 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
+                                {captureFeedback}
+                            </div>
+                        )}
 
                         {movie.frames.length === 0 ? (
                             <div className="relative rounded-lg border border-[#B9A5D2]/12 bg-[#1a1f3a] p-6 py-12 text-center italic text-[#E2D4EF]">
@@ -444,6 +588,104 @@ export function MovieDetail({
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {isCaptureModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                    <div className="w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-[#B9A5D2]/20 bg-[#314577] shadow-[0_24px_70px_rgba(8,12,30,0.45)]">
+                        <div className="flex items-center justify-between gap-4 border-b border-[#B9A5D2]/18 px-5 py-5">
+                            <h2 className="flex items-center gap-3 text-2xl font-semibold" style={{ color: '#D8C5E5' }}>
+                                <Film className="h-6 w-6 text-[#E0BAAA]" />
+                                Capture Frames
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={closeCaptureModal}
+                                className="text-3xl leading-none text-[#D8C5E5]/85 transition-colors hover:text-[#FBE7EF]"
+                                aria-label="Close capture modal"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 px-5 py-4">
+                            <div className="flex flex-col gap-3 md:flex-row">
+                                <input
+                                    type="text"
+                                    value={captureVideoUrl}
+                                    onChange={(event) => setCaptureVideoUrl(event.target.value)}
+                                    placeholder="Paste direct video URL here..."
+                                    className="w-full rounded-2xl border border-[#B9A5D2]/10 bg-[#1f2547] px-4 py-3 text-[#D8C5E5] outline-none placeholder:text-[#B9A5D2]/45"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleLoadCaptureVideo}
+                                    className="rounded-2xl bg-[#596A97] px-6 py-3 font-medium text-[#D8C5E5] transition-opacity hover:opacity-90"
+                                >
+                                    Load
+                                </button>
+                            </div>
+                            {captureErrors.videoUrl && <p className="text-xs text-red-300">{captureErrors.videoUrl}</p>}
+                            <p className="text-sm text-[#D8C5E5]/65">Use a direct browser-playable video URL to capture frames.</p>
+
+                            <div className="overflow-hidden rounded-2xl bg-[#14182F]">
+                                {captureLoadedUrl ? (
+                                    <video
+                                        ref={videoRef}
+                                        key={captureLoadedUrl}
+                                        controls
+                                        crossOrigin="anonymous"
+                                        preload="metadata"
+                                        className="aspect-video w-full bg-black"
+                                        src={captureLoadedUrl}
+                                    >
+                                        Your browser does not support HTML5 video playback.
+                                    </video>
+                                ) : (
+                                    <div className="flex aspect-video flex-col items-center justify-center gap-5 px-6 text-center text-[#D8C5E5]/55">
+                                        <Film className="h-12 w-12" />
+                                        <div className="space-y-2">
+                                            <p className="text-2xl font-medium">Load a video to begin capturing</p>
+                                            <p className="text-sm">Paste a direct link, then load it in the player above.</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col gap-4 border-t border-[#B9A5D2]/16 pt-4 md:flex-row md:items-end md:justify-between">
+                                <div className="flex-1">
+                                    <label htmlFor="capture-caption" className="mb-2 block text-sm font-semibold tracking-[0.08em] text-[#D8C5E5]/85">
+                                        FRAME CAPTION
+                                    </label>
+                                    <input
+                                        id="capture-caption"
+                                        type="text"
+                                        value={captureCaption}
+                                        onChange={(event) => setCaptureCaption(event.target.value)}
+                                        placeholder="Why are you saving this frame?"
+                                        className="w-full rounded-2xl border border-[#B9A5D2]/10 bg-[#1f2547] px-4 py-3 text-[#D8C5E5] outline-none placeholder:text-[#B9A5D2]/45"
+                                    />
+                                    {captureErrors.caption && <p className="mt-1 text-xs text-red-300">{captureErrors.caption}</p>}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => void handleCaptureFrame()}
+                                    disabled={isSavingCapture}
+                                    className="inline-flex items-center justify-center gap-3 rounded-2xl bg-[#E7C6AB] px-6 py-3 font-semibold text-[#2B2445] transition-opacity hover:opacity-92 disabled:opacity-60"
+                                >
+                                    <Film className="h-5 w-5" />
+                                    {isSavingCapture ? 'Saving...' : 'Save Frame'}
+                                </button>
+                            </div>
+
+                            {captureFeedback && (
+                                <div role="alert" className="rounded-xl border border-amber-400/30 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
+                                    {captureFeedback}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

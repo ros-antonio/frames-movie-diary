@@ -35,8 +35,8 @@ const movieLinkSchema = z
   .string()
   .trim()
   .max(2000)
-  .refine((value) => /^(https?:\/\/|magnet:)/.test(value), {
-    message: 'movieLink must start with https://, http://, or magnet:',
+  .refine((value) => /^https?:\/\//.test(value), {
+    message: 'movieLink must start with https:// or http://',
   });
 
 export const createMovieSchema = z.object({

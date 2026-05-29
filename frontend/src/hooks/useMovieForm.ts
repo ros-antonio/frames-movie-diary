@@ -56,8 +56,8 @@ function validateMovieForm(data: MovieFormData): FormErrors {
 
   if (data.movieLink) {
     const trimmedLink = data.movieLink.trim();
-    if (trimmedLink && !/^(https?:\/\/|magnet:)/.test(trimmedLink)) {
-      errors.movieLink = 'Movie link must start with https://, http://, or magnet:';
+    if (trimmedLink && !/^https?:\/\//.test(trimmedLink)) {
+      errors.movieLink = 'Movie link must start with https:// or http://';
     } else if (trimmedLink && trimmedLink.length > 2000) {
       errors.movieLink = 'Movie link must be less than 2000 characters';
     }
